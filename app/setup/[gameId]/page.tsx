@@ -21,9 +21,17 @@ type Team = {
   id: string;
   name: string | null;
   member_count: number | null;
+  mission: string | null;
   station: Station[];
 };
-type Game = { id: string; name: string; code: string; team: Team[] };
+type Game = {
+  id: string;
+  name: string;
+  code: string;
+  team: Team[];
+  goal_lat: number | null;
+  goal_lng: number | null;
+};
 
 type Capture = { lat: number; lng: number; accuracy: number };
 
@@ -33,7 +41,16 @@ export default function PinSetupPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [activeTeam, setActiveTeam] = useState(0);
 
-  // pin form
+  // mission
+  const [mission, setMission] = useState("");
+  const [missionSaving, setMissionSaving] = useState(false);
+  const [missionEditing, setMissionEditing] = useState(false);
+  const [missionSkipped, setMissionSkipped] = useState<Set<string>>(new Set());
+
+  // shared goal
+  const [goalSkipped, setGoalSkipped] = useState(false);
+
+  // pin / capture form (shared by pin + goal)
   const [capture, setCapture] = useState<Capture | null>(null);
   const [locating, setLocating] = useState(false);
   const [geoError, setGeoError] = useState<string | null>(null);
@@ -63,6 +80,13 @@ export default function PinSetupPage() {
     load();
   }, [load]);
 
+  // keep mission textarea in sync with the selected team
+  useEffect(() => {
+    const t = game?.team[activeTeam];
+    setMission(t?.mission ?? "");
+    setMissionEditing(false);
+  }, [activeTeam, game]);
+
   function resetForm() {
     setCapture(null);
     setQuestion("");
@@ -71,6 +95,11 @@ export default function PinSetupPage() {
     setHint("");
     setSaveError(null);
     setGeoError(null);
+  }
+
+  function switchTeam(i: number) {
+    setActiveTeam(i);
+    resetForm();
   }
 
   function locate() {
@@ -97,6 +126,42 @@ export default function PinSetupPage() {
     );
   }
 
+  async function saveMission() {
+    if (!game) return;
+    const team = game.team[activeTeam];
+    setMissionSaving(true);
+    try {
+      const res = await fetch(`/api/games/${gameId}/mission`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ teamId: team.id, mission }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error ?? "Fehler");
+      }
+      setMissionEditing(false);
+      await load();
+    } catch (e) {
+      setGeoError(e instanceof Error ? e.message : "Fehler"); // surface near mission
+    } finally {
+      setMissionSaving(false);
+    }
+  }
+
+  function skipMission() {
+    if (!game) return;
+    const id = game.team[activeTeam].id;
+    setMissionSkipped((prev) => new Set(prev).add(id));
+    setMissionEditing(false);
+  }
+
+  function editMission() {
+    const t = game?.team[activeTeam];
+    setMission(t?.mission ?? "");
+    setMissionEditing(true);
+  }
+
   async function saveStation() {
     if (!game || !capture) return;
     const team = game.team[activeTeam];
@@ -110,6 +175,35 @@ export default function PinSetupPage() {
         body: JSON.stringify({
           teamId: team.id,
           idx: nextIdx,
+          lat: capture.lat,
+          lng: capture.lng,
+          radius_m: 18,
+          hint,
+          question,
+          answers,
+          correct_idx: correctIdx,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Fehler");
+      resetForm();
+      await load();
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : "Fehler");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function saveGoal() {
+    if (!game || !capture) return;
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const res = await fetch(`/api/games/${gameId}/goal`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           lat: capture.lat,
           lng: capture.lng,
           radius_m: 18,
@@ -151,8 +245,116 @@ export default function PinSetupPage() {
   const allDone = game.team.every(
     (t) => t.station.length >= (t.member_count ?? 0),
   );
+  const goalSet = game.goal_lat != null && game.goal_lng != null;
+  const missionDone =
+    (!!team.mission?.trim() || missionSkipped.has(team.id)) && !missionEditing;
   const formValid =
     capture && question.trim() && answers.every((a) => a.trim());
+
+  // The reusable GPS + task fields (used by pin form AND goal step).
+  const captureFields = (
+    <>
+      {!capture ? (
+        <>
+          <button
+            onClick={locate}
+            disabled={locating}
+            className="bs-btn bs-btn--pink text-lg"
+          >
+            {locating ? "Suche Standort…" : "📍 Hier setzen"}
+          </button>
+          {geoError && (
+            <p className="text-[color:var(--color-red)] text-sm font-bold">
+              {geoError}
+            </p>
+          )}
+          <p className="text-[color:var(--color-muted)] text-xs font-semibold">
+            Geh zum Ort und tippe „Hier setzen" — dein aktueller GPS-Standort
+            wird übernommen.
+          </p>
+        </>
+      ) : (
+        <>
+          <div className="h-44 w-full overflow-hidden rounded-[14px] border-[3px] border-black">
+            <PinMap lat={capture.lat} lng={capture.lng} radiusM={18} />
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="bs-chip text-[color:var(--color-cyan)]">
+              Genauigkeit ±{Math.round(capture.accuracy)} m
+            </span>
+            <button
+              onClick={locate}
+              className="bs-btn bs-btn--ghost text-sm px-3 min-h-10"
+            >
+              Neu messen
+            </button>
+          </div>
+
+          <label className="flex flex-col gap-1">
+            <span className="text-xs font-extrabold uppercase text-[color:var(--color-muted)]">
+              Frage
+            </span>
+            <textarea
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              placeholder="z.B. Wie viele Beine hat eine Spinne?"
+              rows={2}
+              className="bs-input py-3 resize-none"
+            />
+          </label>
+
+          <div className="flex flex-col gap-2">
+            <span className="text-xs font-extrabold uppercase text-[color:var(--color-muted)]">
+              Antworten (richtige antippen)
+            </span>
+            {answers.map((a, i) => (
+              <div key={i} className="flex gap-2 items-center">
+                <button
+                  type="button"
+                  onClick={() => setCorrectIdx(i)}
+                  className={`shrink-0 w-10 h-10 rounded-full border-[3px] border-black font-display ${
+                    correctIdx === i
+                      ? "bg-[color:var(--color-green)] text-white"
+                      : "bg-white/10 text-[color:var(--color-muted)]"
+                  }`}
+                >
+                  {correctIdx === i ? "✓" : String.fromCharCode(65 + i)}
+                </button>
+                <input
+                  value={a}
+                  onChange={(e) =>
+                    setAnswers((prev) =>
+                      prev.map((x, j) => (j === i ? e.target.value : x)),
+                    )
+                  }
+                  placeholder={`Antwort ${String.fromCharCode(65 + i)}`}
+                  className="bs-input"
+                />
+              </div>
+            ))}
+          </div>
+
+          <label className="flex flex-col gap-1">
+            <span className="text-xs font-extrabold uppercase text-[color:var(--color-muted)]">
+              Hinweis bei „DA" (optional)
+            </span>
+            <input
+              value={hint}
+              onChange={(e) => setHint(e.target.value)}
+              placeholder="z.B. Schau am Zaun"
+              className="bs-input"
+            />
+          </label>
+
+          {saveError && (
+            <p className="text-[color:var(--color-red)] text-sm font-bold">
+              {saveError}
+            </p>
+          )}
+        </>
+      )}
+    </>
+  );
 
   return (
     <main className="min-h-screen p-5 pb-24">
@@ -199,194 +401,197 @@ export default function PinSetupPage() {
           </div>
         </div>
 
-        {/* team switcher */}
-        {game.team.length > 1 && (
-          <div className="flex gap-2">
-            {game.team.map((t, i) => {
-              const c = t.station.length;
-              const tgt = t.member_count ?? 0;
-              return (
-                <button
-                  key={t.id}
-                  onClick={() => {
-                    setActiveTeam(i);
-                    resetForm();
-                  }}
-                  className={`flex-1 bs-btn text-base ${
-                    i === activeTeam ? "" : "bs-btn--ghost"
-                  }`}
-                >
-                  {t.name} {c}/{tgt}
-                </button>
-              );
-            })}
+        {/* ============ GEMEINSAMES ZIEL (wenn alle Pins gesetzt) ============ */}
+        {allDone && !goalSet && !goalSkipped ? (
+          <div className="bs-panel p-4 flex flex-col gap-4">
+            <p className="font-display text-xl text-[color:var(--color-cyan)]">
+              🏁 Gemeinsames Ziel
+            </p>
+            <p className="text-[color:var(--color-muted)] text-xs font-semibold">
+              Der letzte Pin — für ALLE Teams gemeinsam. Geht zum Zielort, setzt
+              ihn und gebt eine Abschluss-Aufgabe ein. Optional.
+            </p>
+            {captureFields}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setGoalSkipped(true)}
+                className="bs-btn bs-btn--ghost flex-1"
+              >
+                Skip
+              </button>
+              <button
+                onClick={saveGoal}
+                disabled={!formValid || saving}
+                className="bs-btn bs-btn--green flex-1"
+              >
+                {saving ? "…" : "Sichern"}
+              </button>
+            </div>
           </div>
-        )}
-
-        {/* progress for current team */}
-        <div className="bs-panel p-4 flex flex-col gap-2">
-          <div className="flex items-center justify-between">
-            <span className="font-display text-xl text-[color:var(--color-gold)]">
-              {team.name}
-            </span>
-            <span className="bs-chip text-[color:var(--color-cyan)]">
-              {team.station.length}/{target} Pins
-            </span>
-          </div>
-          {team.station.length > 0 && (
-            <ul className="flex flex-col gap-1 text-sm">
-              {team.station.map((s) => (
-                <li key={s.id} className="text-[color:var(--color-muted)] font-semibold">
-                  📍 Pin {s.idx + 1}
-                  {s.hint ? ` — „${s.hint}"` : ""}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
-        {done ? (
+        ) : allDone ? (
           <div className="bs-panel p-4 text-center flex flex-col gap-3">
             <p className="font-display text-2xl text-[color:var(--color-green)]">
-              {team.name} fertig! ✓
+              Alles startklar! ✓
             </p>
-            {!allDone && game.team.length > 1 && (
+            <p className="text-[color:var(--color-muted)] font-bold">
+              {goalSet
+                ? "🏁 Gemeinsames Ziel gesetzt — alle Pins stehen!"
+                : "Alle Pins gesetzt (ohne gemeinsames Ziel)."}
+            </p>
+            {!goalSet && (
               <button
-                onClick={() => {
-                  setActiveTeam((activeTeam + 1) % game.team.length);
-                  resetForm();
-                }}
-                className="bs-btn bs-btn--blue"
+                onClick={() => setGoalSkipped(false)}
+                className="bs-btn bs-btn--ghost text-base"
               >
-                Nächstes Team →
+                🏁 Ziel doch noch setzen
               </button>
             )}
-            {allDone && (
-              <>
-                <p className="text-[color:var(--color-muted)] font-bold">
-                  Alle Pins gesetzt — das Spiel ist startklar!
-                </p>
-                <div className="bs-chip text-xl px-4 py-2 mx-auto font-display text-[color:var(--color-gold)]">
-                  Code: {game.code}
-                </div>
-              </>
-            )}
+            <div className="bs-chip text-xl px-4 py-2 mx-auto font-display text-[color:var(--color-gold)]">
+              Code: {game.code}
+            </div>
           </div>
         ) : (
-          <div className="bs-panel p-4 flex flex-col gap-4">
-            <p className="font-display text-lg text-[color:var(--color-cyan)]">
-              Pin {team.station.length + 1} von {target}
-            </p>
+          <>
+            {/* team switcher */}
+            {game.team.length > 1 && (
+              <div className="flex gap-2">
+                {game.team.map((t, i) => {
+                  const c = t.station.length;
+                  const tgt = t.member_count ?? 0;
+                  return (
+                    <button
+                      key={t.id}
+                      onClick={() => switchTeam(i)}
+                      className={`flex-1 bs-btn text-base ${
+                        i === activeTeam ? "" : "bs-btn--ghost"
+                      }`}
+                    >
+                      {t.name} {c}/{tgt}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
-            {/* GPS capture */}
-            {!capture ? (
-              <>
-                <button
-                  onClick={locate}
-                  disabled={locating}
-                  className="bs-btn bs-btn--pink text-lg"
-                >
-                  {locating ? "Suche Standort…" : "📍 Pin hier setzen"}
-                </button>
-                {geoError && (
-                  <p className="text-[color:var(--color-red)] text-sm font-bold">
-                    {geoError}
-                  </p>
-                )}
-                <p className="text-[color:var(--color-muted)] text-xs font-semibold">
-                  Geh zum Versteck und tippe „Pin hier setzen" — dein aktueller
-                  GPS-Standort wird übernommen.
+            {/* ---- Mission step ---- */}
+            {!missionDone ? (
+              <div className="bs-panel p-4 flex flex-col gap-3">
+                <p className="font-display text-lg text-[color:var(--color-cyan)]">
+                  🎯 Mission für {team.name}
                 </p>
-              </>
+                <p className="text-[color:var(--color-muted)] text-xs font-semibold">
+                  Beschreibt in ein paar Sätzen, was dieses Team in diesem Spiel
+                  erleben soll.
+                </p>
+                <textarea
+                  value={mission}
+                  onChange={(e) => setMission(e.target.value)}
+                  placeholder="z.B. Ihr seid Schatzjäger! Findet alle Pins im Park, löst die Rätsel und hebt am Ende gemeinsam den großen Schatz."
+                  rows={6}
+                  className="bs-input py-3 resize-none min-h-[9rem]"
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={skipMission}
+                    className="bs-btn bs-btn--ghost flex-1"
+                  >
+                    Skip
+                  </button>
+                  <button
+                    onClick={saveMission}
+                    disabled={missionSaving || !mission.trim()}
+                    className="bs-btn bs-btn--green flex-1"
+                  >
+                    {missionSaving ? "…" : "Sichern"}
+                  </button>
+                </div>
+              </div>
             ) : (
               <>
-                <div className="h-44 w-full overflow-hidden rounded-[14px] border-[3px] border-black">
-                  <PinMap lat={capture.lat} lng={capture.lng} radiusM={18} />
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="bs-chip text-[color:var(--color-cyan)]">
-                    Genauigkeit ±{Math.round(capture.accuracy)} m
-                  </span>
+                {/* mission summary */}
+                <div className="bs-panel p-3 flex items-start gap-2">
+                  <span className="text-lg">🎯</span>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-xs font-extrabold uppercase text-[color:var(--color-muted)]">
+                      Mission {team.name}
+                    </span>
+                    <p className="font-bold text-sm">
+                      {team.mission?.trim() || (
+                        <span className="text-[color:var(--color-muted)]">
+                          — übersprungen —
+                        </span>
+                      )}
+                    </p>
+                  </div>
                   <button
-                    onClick={locate}
-                    className="bs-btn bs-btn--ghost text-sm px-3 min-h-10"
+                    onClick={editMission}
+                    className="bs-btn bs-btn--ghost text-sm px-3 min-h-10 shrink-0"
                   >
-                    Neu messen
+                    ✏️
                   </button>
                 </div>
 
-                {/* task */}
-                <label className="flex flex-col gap-1">
-                  <span className="text-xs font-extrabold uppercase text-[color:var(--color-muted)]">
-                    Frage
-                  </span>
-                  <textarea
-                    value={question}
-                    onChange={(e) => setQuestion(e.target.value)}
-                    placeholder="z.B. Wie viele Beine hat eine Spinne?"
-                    rows={2}
-                    className="bs-input py-3 resize-none"
-                  />
-                </label>
-
-                <div className="flex flex-col gap-2">
-                  <span className="text-xs font-extrabold uppercase text-[color:var(--color-muted)]">
-                    Antworten (richtige antippen)
-                  </span>
-                  {answers.map((a, i) => (
-                    <div key={i} className="flex gap-2 items-center">
-                      <button
-                        type="button"
-                        onClick={() => setCorrectIdx(i)}
-                        className={`shrink-0 w-10 h-10 rounded-full border-[3px] border-black font-display ${
-                          correctIdx === i
-                            ? "bg-[color:var(--color-green)] text-white"
-                            : "bg-white/10 text-[color:var(--color-muted)]"
-                        }`}
-                      >
-                        {correctIdx === i ? "✓" : String.fromCharCode(65 + i)}
-                      </button>
-                      <input
-                        value={a}
-                        onChange={(e) =>
-                          setAnswers((prev) =>
-                            prev.map((x, j) => (j === i ? e.target.value : x)),
-                          )
-                        }
-                        placeholder={`Antwort ${String.fromCharCode(65 + i)}`}
-                        className="bs-input"
-                      />
-                    </div>
-                  ))}
+                {/* progress for current team */}
+                <div className="bs-panel p-4 flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-display text-xl text-[color:var(--color-gold)]">
+                      {team.name}
+                    </span>
+                    <span className="bs-chip text-[color:var(--color-cyan)]">
+                      {team.station.length}/{target} Pins
+                    </span>
+                  </div>
+                  {team.station.length > 0 && (
+                    <ul className="flex flex-col gap-1 text-sm">
+                      {team.station.map((s) => (
+                        <li
+                          key={s.id}
+                          className="text-[color:var(--color-muted)] font-semibold"
+                        >
+                          📍 Pin {s.idx + 1}
+                          {s.hint ? ` — „${s.hint}"` : ""}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
 
-                <label className="flex flex-col gap-1">
-                  <span className="text-xs font-extrabold uppercase text-[color:var(--color-muted)]">
-                    Hinweis bei „DA" (optional)
-                  </span>
-                  <input
-                    value={hint}
-                    onChange={(e) => setHint(e.target.value)}
-                    placeholder="z.B. Schau am Zaun"
-                    className="bs-input"
-                  />
-                </label>
-
-                {saveError && (
-                  <p className="text-[color:var(--color-red)] text-sm font-bold">
-                    {saveError}
-                  </p>
+                {done ? (
+                  <div className="bs-panel p-4 text-center flex flex-col gap-3">
+                    <p className="font-display text-2xl text-[color:var(--color-green)]">
+                      {team.name} fertig! ✓
+                    </p>
+                    {game.team.length > 1 && (
+                      <button
+                        onClick={() =>
+                          switchTeam((activeTeam + 1) % game.team.length)
+                        }
+                        className="bs-btn bs-btn--blue"
+                      >
+                        Nächstes Team →
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="bs-panel p-4 flex flex-col gap-4">
+                    <p className="font-display text-lg text-[color:var(--color-cyan)]">
+                      Pin {team.station.length + 1} von {target}
+                    </p>
+                    {captureFields}
+                    {capture && (
+                      <button
+                        onClick={saveStation}
+                        disabled={!formValid || saving}
+                        className="bs-btn bs-btn--green text-lg"
+                      >
+                        {saving ? "Speichern…" : "Pin speichern ✓"}
+                      </button>
+                    )}
+                  </div>
                 )}
-                <button
-                  onClick={saveStation}
-                  disabled={!formValid || saving}
-                  className="bs-btn bs-btn--green text-lg"
-                >
-                  {saving ? "Speichern…" : "Pin speichern ✓"}
-                </button>
               </>
             )}
-          </div>
+          </>
         )}
       </div>
     </main>

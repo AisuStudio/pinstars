@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import { distanceM, heatFor } from "@/lib/geo";
+import { unlockAudio, playArrived, playCorrect, playWrong } from "@/lib/sound";
 
 const PlayMap = dynamic(() => import("@/components/PlayMap"), { ssr: false });
 
@@ -16,6 +17,7 @@ type Station = {
   radius_m: number;
   hint: string | null;
   task: Task[];
+  isGoal?: boolean;
 };
 type Player = { id: string; name: string | null; order_idx: number };
 type Team = {
@@ -24,10 +26,23 @@ type Team = {
   member_count: number | null;
   current_index: number;
   current_player_idx: number;
+  mission: string | null;
   player: Player[];
   station: Station[];
 };
-type Game = { id: string; name: string; code: string; team: Team[] };
+type Game = {
+  id: string;
+  name: string;
+  code: string;
+  team: Team[];
+  goal_lat: number | null;
+  goal_lng: number | null;
+  goal_radius_m: number | null;
+  goal_hint: string | null;
+  goal_question: string | null;
+  goal_answers: string[] | null;
+  goal_correct_idx: number | null;
+};
 
 export default function PlayPage() {
   const { gameId } = useParams<{ gameId: string }>();
@@ -75,9 +90,41 @@ export default function PlayPage() {
     () => game?.team.find((t) => t.id === teamId) ?? null,
     [game, teamId],
   );
-  const target = team?.member_count ?? team?.station.length ?? 0;
+
+  // Effective station list = the team's own pins + (optional) the shared goal
+  // appended as a final pin for everyone.
+  const hasGoal = game?.goal_lat != null && game?.goal_lng != null;
+  const stations = useMemo<Station[]>(() => {
+    if (!team) return [];
+    const own = team.station;
+    if (!game || game.goal_lat == null || game.goal_lng == null) return own;
+    const goal: Station = {
+      id: "goal",
+      idx: own.length,
+      lat: game.goal_lat,
+      lng: game.goal_lng,
+      radius_m: game.goal_radius_m ?? 18,
+      hint: game.goal_hint,
+      isGoal: true,
+      task: game.goal_question
+        ? [
+            {
+              id: "goal-task",
+              question: game.goal_question,
+              answers: game.goal_answers ?? [],
+              correct_idx: game.goal_correct_idx ?? 0,
+            },
+          ]
+        : [],
+    };
+    return [...own, goal];
+  }, [team, game]);
+
+  const ownTarget = team?.member_count ?? team?.station.length ?? 0;
+  const target = ownTarget + (hasGoal ? 1 : 0);
   const done = !!team && team.current_index >= target;
-  const station = team?.station[team.current_index] ?? null;
+  const station = stations[team?.current_index ?? -1] ?? null;
+  const isGoalStation = !!station?.isGoal;
 
   // geolocation watch (only while actually playing)
   useEffect(() => {
@@ -109,6 +156,13 @@ export default function PlayPage() {
   const heat = dist != null && station ? heatFor(dist, station.radius_m) : null;
   const isDA = heat === "DA";
 
+  // Voice line + chime the moment a pin is reached ("DA").
+  const wasDA = useRef(false);
+  useEffect(() => {
+    if (isDA && !wasDA.current) playArrived();
+    wasDA.current = isDA;
+  }, [isDA]);
+
   function joinWithCode() {
     if (!game) return;
     if (codeInput.trim().toUpperCase() !== game.code.toUpperCase()) {
@@ -119,10 +173,12 @@ export default function PlayPage() {
     if (game.team.length === 1) selectTeam(game.team[0].id);
   }
   function selectTeam(id: string) {
+    unlockAudio();
     localStorage.setItem(lsTeamKey, id);
     setTeamId(id);
   }
   function startGame() {
+    unlockAudio();
     localStorage.setItem(lsStartKey, "1");
     setStarted(true);
   }
@@ -131,10 +187,12 @@ export default function PlayPage() {
     if (picked == null || !station || !team) return;
     const correct = station.task[0]?.correct_idx;
     if (picked !== correct) {
+      playWrong();
       setWrong(true);
       return;
     }
     // correct → advance
+    playCorrect();
     setAdvancing(true);
     const newIndex = team.current_index + 1;
     try {
@@ -216,7 +274,7 @@ export default function PlayPage() {
     return (
       <Center>
         <h1 className="bs-title text-4xl text-[color:var(--color-gold)]">{team.name}</h1>
-        <p className="text-[color:var(--color-cyan-light)] font-bold">{target} Pins · {players.length} Spieler</p>
+        <p className="text-[color:var(--color-cyan-light)] font-bold">{ownTarget} Pins · {players.length} Spieler</p>
         <div className="bs-panel p-4 flex flex-col gap-2 w-full max-w-xs">
           {players.map((p, i) => (
             <div key={p.id} className="flex items-center gap-2 font-bold">
@@ -225,6 +283,19 @@ export default function PlayPage() {
             </div>
           ))}
         </div>
+        {team.mission?.trim() && (
+          <div className="bs-panel p-4 w-full max-w-xs flex flex-col gap-1 text-left">
+            <span className="text-xs font-extrabold uppercase text-[color:var(--color-cyan-light)]">
+              🎯 Eure Mission
+            </span>
+            <p className="font-bold text-sm">{team.mission}</p>
+          </div>
+        )}
+        {hasGoal && (
+          <p className="text-[color:var(--color-muted)] font-bold text-sm">
+            🏁 Am Ende wartet ein gemeinsames Ziel für alle Teams!
+          </p>
+        )}
         <p className="font-bold text-[color:var(--color-gold)]">
           ⭐ {first?.name} fängt an!
         </p>
@@ -248,22 +319,25 @@ export default function PlayPage() {
 
   // PLAY
   const currentPlayer = team.player[team.current_index % team.player.length];
+  const turnName = isGoalStation ? "Alle zusammen" : currentPlayer?.name;
   return (
     <main className="min-h-screen flex flex-col">
       {/* top bar */}
       <div className="p-3 flex items-center justify-between gap-2">
         <div className="bs-stat">
-          <div className="bs-stat__icon bg-[color:var(--color-pink)]">⭐</div>
+          <div className="bs-stat__icon bg-[color:var(--color-pink)]">{isGoalStation ? "🏁" : "⭐"}</div>
           <div className="flex flex-col">
             <span className="bs-stat__label">Dran</span>
-            <span className="bs-stat__value text-[color:var(--color-pink)]">{currentPlayer?.name}</span>
+            <span className="bs-stat__value text-[color:var(--color-pink)]">{turnName}</span>
           </div>
         </div>
         <div className="bs-stat">
-          <div className="bs-stat__icon bg-[color:var(--color-gold)]">📍</div>
+          <div className="bs-stat__icon bg-[color:var(--color-gold)]">{isGoalStation ? "🏁" : "📍"}</div>
           <div className="flex flex-col">
-            <span className="bs-stat__label">Pin</span>
-            <span className="bs-stat__value text-[color:var(--color-gold)]">{team.current_index + 1}/{target}</span>
+            <span className="bs-stat__label">{isGoalStation ? "Ziel" : "Pin"}</span>
+            <span className="bs-stat__value text-[color:var(--color-gold)]">
+              {isGoalStation ? "Finale!" : `${team.current_index + 1}/${target}`}
+            </span>
           </div>
         </div>
       </div>
@@ -296,12 +370,17 @@ export default function PlayPage() {
           </div>
         ) : (
           <div className="bs-panel p-3 text-center flex flex-col gap-2">
-            <span className="font-display text-3xl text-[color:var(--color-green)]">DA! 🎉</span>
+            <span className="font-display text-3xl text-[color:var(--color-green)]">
+              {isGoalStation ? "ZIEL! 🏁" : "DA! 🎉"}
+            </span>
             {station?.hint && (
               <span className="font-bold text-[color:var(--color-gold)]">💡 {station.hint}</span>
             )}
-            <button onClick={() => setTaskOpen(true)} className="bs-btn bs-btn--green text-lg">
-              Aufgabe lösen →
+            <button
+              onClick={() => { unlockAudio(); setTaskOpen(true); }}
+              className="bs-btn bs-btn--green text-lg"
+            >
+              {isGoalStation ? "Letzte Aufgabe lösen →" : "Aufgabe lösen →"}
             </button>
           </div>
         )}
@@ -312,7 +391,7 @@ export default function PlayPage() {
         <div className="fixed inset-0 z-50 bg-black/60 flex items-end sm:items-center justify-center p-4">
           <div className="bs-panel p-5 w-full max-w-md flex flex-col gap-4">
             <p className="font-bold text-[color:var(--color-cyan-light)] text-sm">
-              {currentPlayer?.name} ist dran:
+              {turnName} ist dran:
             </p>
             <h2 className="font-display text-2xl text-[color:var(--color-gold)]">
               {station.task[0]?.question}

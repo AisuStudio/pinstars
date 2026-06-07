@@ -10,3 +10,12 @@ nächsten Pin freischaltet. Genau 1 Pin pro mitspielender Person.
 - Leaflet + OpenTopoMap (Karte, eigene Position via Browser-Geolocation)
 
 Spielkonzept: siehe `Pinstars Geburtstags Game.txt`.
+
+## Datenbank-Migrationen
+
+SQL in `db/migrations/` liegt bereit und muss **vor dem Deploy** einmal im
+Supabase SQL-Editor ausgeführt werden (in Reihenfolge der Nummerierung). Die
+Migrationen sind idempotent (`if not exists`), also gefahrlos mehrfach
+ausführbar.
+
+- `001_mission_and_shared_goal.sql` — Team-Mission + gemeinsames Ziel.
