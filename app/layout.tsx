@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { Nunito } from "next/font/google";
 import "./globals.css";
+import { LanguageProvider } from "@/lib/i18n";
 
 const nougat = localFont({
   src: "./fonts/nougat-extrablack.ttf",
@@ -34,7 +35,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="de" className={`${nougat.variable} ${nunito.variable} h-full`}>
-      <body className="min-h-full antialiased">{children}</body>
+      <body className="min-h-full antialiased">
+        <LanguageProvider>{children}</LanguageProvider>
+      </body>
     </html>
   );
 }

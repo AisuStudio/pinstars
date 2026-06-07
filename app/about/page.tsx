@@ -1,62 +1,51 @@
-import Link from "next/link";
-import type { Metadata } from "next";
+"use client";
 
-export const metadata: Metadata = {
-  title: "Über dieses Spiel · Pinstars",
-};
+import Link from "next/link";
+import { useT, LanguageSwitcher } from "@/lib/i18n";
 
 export default function AboutPage() {
+  const t = useT();
   return (
     <main className="min-h-screen p-6 pb-16">
       <div className="max-w-md mx-auto flex flex-col gap-6">
-        <Link
-          href="/"
-          className="text-[color:var(--color-muted)] font-bold text-sm"
-        >
-          ← zurück
-        </Link>
+        <div className="flex items-center justify-between">
+          <Link
+            href="/"
+            className="text-[color:var(--color-muted)] font-bold text-sm"
+          >
+            {t("common.back")}
+          </Link>
+          <LanguageSwitcher />
+        </div>
         <h1 className="bs-title text-3xl text-[color:var(--color-gold)]">
-          ÜBER DIESES SPIEL
+          {t("about.title")}
         </h1>
 
         <section className="bs-panel p-5 flex flex-col gap-2">
           <h2 className="font-display text-xl text-[color:var(--color-cyan)]">
-            Wofür ist Pinstars?
+            {t("about.q.head")}
           </h2>
-          <p className="font-bold text-sm leading-relaxed">
-            Pinstars ist eine kleine Geocaching-Schnitzeljagd – gemacht für
-            Kindergeburtstage und Ausflüge.
-          </p>
-          <p className="font-bold text-sm leading-relaxed">
-            Versteckt Pins in eurer Umgebung, denkt euch Quizfragen aus, und
-            lasst die Teams losziehen. Ganz ohne Anmeldung, einfach per Link.
-          </p>
+          <p className="font-bold text-sm leading-relaxed">{t("about.q.p1")}</p>
+          <p className="font-bold text-sm leading-relaxed">{t("about.q.p2")}</p>
           <p className="font-bold text-sm leading-relaxed text-[color:var(--color-muted)]">
-            Pinstars ist kein Brawlstars / SuperCell Produkt und auch nicht
-            kommerziell! Wir sind einfach Fans.
+            {t("about.q.p3")}
           </p>
         </section>
 
         <section className="bs-panel p-5 flex flex-col gap-2">
           <h2 className="font-display text-xl text-[color:var(--color-green)]">
-            Datensicherheit
+            {t("about.sec.head")}
           </h2>
-          <p className="font-bold text-sm leading-relaxed">
-            Es werden <strong>keine personenbezogenen Daten erhoben</strong>.
-            Kein Login, kein Tracking, keine Werbung. Spielernamen und Pins, die
-            ihr eingebt, dienen nur dem Spiel und sind über den geheimen
-            Spiel-Link erreichbar – teilt ihn also nur mit euren Teams.
-          </p>
-          <p className="font-bold text-sm leading-relaxed">
-            Euer GPS-Standort wird ausschließlich im Browser verwendet, um die
-            Entfernung zum nächsten Pin anzuzeigen. Er wird nicht gespeichert
-            und nicht weitergegeben.
-          </p>
+          <p
+            className="font-bold text-sm leading-relaxed"
+            dangerouslySetInnerHTML={{ __html: t("about.sec.p1") }}
+          />
+          <p className="font-bold text-sm leading-relaxed">{t("about.sec.p2")}</p>
         </section>
 
         <section className="bs-panel p-5 flex flex-col gap-3">
           <h2 className="font-display text-xl text-[color:var(--color-pink)]">
-            Kontakt
+            {t("about.contact.head")}
           </h2>
           <a
             href="mailto:aisustudio.berlin@gmail.com"
@@ -70,12 +59,12 @@ export default function AboutPage() {
             rel="noopener noreferrer"
             className="bs-btn bs-btn--ghost text-base"
           >
-            ⭐ Projekt auf GitHub
+            {t("about.github")}
           </a>
         </section>
 
         <p className="text-center text-[color:var(--color-muted)] text-xs font-bold">
-          Anton’s 10 · Pinstars — mit ♥ gebaut
+          {t("about.footer")}
         </p>
       </div>
     </main>
