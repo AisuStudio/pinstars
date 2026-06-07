@@ -13,7 +13,8 @@ export async function GET(
     .from("game")
     .select(
       "id,name,code,status,created_at," +
-        "team(id,name,member_count,current_index,current_player_idx," +
+        "goal_lat,goal_lng,goal_radius_m,goal_hint,goal_question,goal_answers,goal_correct_idx," +
+        "team(id,name,member_count,current_index,current_player_idx,mission," +
         "player(id,name,order_idx)," +
         "station(id,idx,lat,lng,radius_m,hint,task(id,question,answers,correct_idx)))",
     )
