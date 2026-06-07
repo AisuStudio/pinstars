@@ -173,21 +173,14 @@ export default function PlayPage() {
 
   // JOIN: need code + team
   if (!team) {
+    const codeOk = codeInput.trim().toUpperCase() === game.code.toUpperCase();
     return (
-      <Center>
-        <h1 className="bs-title text-4xl text-[color:var(--color-gold)]">{game.name}</h1>
-        <p className="text-[color:var(--color-cyan-light)] font-bold">Geheimen Code eingeben:</p>
-        <input
-          value={codeInput}
-          onChange={(e) => setCodeInput(e.target.value.toUpperCase())}
-          placeholder="CODE"
-          className="bs-input font-display text-3xl tracking-[0.3em] text-center text-[color:var(--color-gold)] max-w-[220px]"
-        />
-        {codeError && <p className="text-[color:var(--color-red)] font-bold">{codeError}</p>}
-        {game.team.length > 1 &&
-        codeInput.trim().toUpperCase() === game.code.toUpperCase() ? (
+      <main className="hero-bg min-h-screen flex flex-col items-center justify-end p-6 pb-[8vh] gap-3">
+        {game.team.length > 1 && codeOk ? (
           <div className="flex flex-col gap-3 w-full max-w-xs">
-            <p className="text-[color:var(--color-muted)] font-bold">Welches Team seid ihr?</p>
+            <p className="text-white font-bold text-center drop-shadow-[0_2px_2px_rgba(0,0,0,0.7)]">
+              Welches Team seid ihr?
+            </p>
             {game.team.map((t) => (
               <button key={t.id} onClick={() => selectTeam(t.id)} className="bs-btn bs-btn--blue">
                 {t.name}
@@ -195,9 +188,24 @@ export default function PlayPage() {
             ))}
           </div>
         ) : (
-          <button onClick={joinWithCode} className="bs-btn text-lg">Beitreten →</button>
+          <>
+            <input
+              value={codeInput}
+              onChange={(e) => setCodeInput(e.target.value.toUpperCase())}
+              placeholder="CODE"
+              className="bs-input font-display text-3xl tracking-[0.3em] text-center text-[color:var(--color-gold)] w-full max-w-xs"
+            />
+            {codeError && (
+              <p className="text-white font-bold bg-[color:var(--color-red)] px-3 py-1 rounded-lg">
+                {codeError}
+              </p>
+            )}
+            <button onClick={joinWithCode} className="bs-btn text-xl w-full max-w-xs">
+              Beitreten →
+            </button>
+          </>
         )}
-      </Center>
+      </main>
     );
   }
 

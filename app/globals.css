@@ -53,6 +53,11 @@ body {
   min-height: 100vh;
 }
 
+/* ---- Hero splash background (logo + character baked into the image) ---- */
+.hero-bg {
+  background: #0a55cf url("/hero.jpg") center center / cover no-repeat;
+}
+
 /* ---- Display headline: Nougat + thick BLACK outline + colored fill ---- */
 .bs-title {
   font-family: var(--font-display), system-ui, sans-serif;
