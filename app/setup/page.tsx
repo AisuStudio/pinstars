@@ -129,11 +129,15 @@ export default function SetupPage() {
             {copied ? "✓" : "Kopieren"}
           </button>
         </div>
-        <p className="text-[color:var(--color-gold)] text-sm font-bold max-w-sm">
-          Nächster Schritt (kommt noch): Pins vor Ort setzen + Aufgaben eingeben.
+        <Link href={`/setup/${gameId}`} className="bs-btn bs-btn--green text-lg mt-2">
+          📍 Weiter: Pins setzen
+        </Link>
+        <p className="text-[color:var(--color-muted)] text-xs font-semibold max-w-sm">
+          Das machst du vor Ort: zu jedem Versteck gehen → „Pin hier setzen" →
+          Aufgabe + Hinweis eingeben.
         </p>
-        <Link href="/" className="bs-btn bs-btn--ghost">
-          Zurück
+        <Link href="/" className="text-[color:var(--color-muted)] font-bold text-sm">
+          ← Zur Startseite
         </Link>
       </main>
     );
