@@ -1,65 +1,69 @@
 @import "tailwindcss";
 
 /* ============================================================
-   Pinstars — Brawl-Stars-inspired design system
-   (Platzhalter-Farben + -Fonts; mit echten Werten leicht zu tunen)
+   Pinstars — Brawl-Stars look, derived from the CW3K style guide
+   (_fromcw3k SVGs). Blue radial-glow bg, black outlines,
+   Nougat ExtraBlack display font, vibrant accent palette.
    ============================================================ */
 
 @theme inline {
-  /* Backgrounds — tiefes Lila/Navy */
-  --color-bg-deep: #1c1142;
-  --color-bg: #2a1a63;
-  --color-panel: #3a2a7a;
-  --color-panel-2: #4a3793;
+  /* Background — blauer Radial-Glow (Style-Guide: 0255CF→2BF7FD→C7FDFD) */
+  --color-bg-deep: #022a73;
+  --color-bg: #0255cf;
+  --color-cyan: #2bf7fd;
+  --color-cyan-light: #c7fdfd;
 
-  /* Brand / Akzente — kräftig & gesättigt */
-  --color-gold: #ffc83d;
-  --color-gold-dark: #e0a020;
-  --color-yellow: #ffe14d;
-  --color-purple: #8b5cf6;
-  --color-purple-dark: #6d28d9;
-  --color-pink: #ff4d9d;
-  --color-blue: #2ba3ff;
-  --color-blue-dark: #1d7fd6;
-  --color-green: #36d957;
-  --color-green-dark: #23ad3f;
-  --color-red: #ff5247;
-  --color-red-dark: #d6362c;
+  /* Akzente (aus dem Style-Guide) */
+  --color-gold: #fec315;
+  --color-gold-dark: #d99e0c;
+  --color-pink: #fd3f7d;
+  --color-pink-dark: #d62462;
+  --color-green: #13aa12;
+  --color-green-dark: #0d7d0c;
+  --color-blue: #2a95ed;
+  --color-blue-dark: #0171f9;
+  --color-red: #e00218;
+  --color-red-dark: #b00212;
+
+  /* Chips / panels */
+  --color-panel: #2c3340;
+  --color-panel-2: #3a4250;
+  --color-chip: #5a5f66;
 
   /* Ink / Text */
-  --color-ink: #1a1230;
+  --color-ink: #000000;
   --color-cream: #ffffff;
-  --color-muted: #b6a8e0;
+  --color-muted: #bcd6f5;
 
-  --font-display: var(--font-lilita);
+  --font-display: var(--font-nougat);
   --font-sans: var(--font-nunito);
 }
 
 :root {
-  --background: #2a1a63;
+  --background: #0255cf;
   --foreground: #ffffff;
 }
 
 body {
   background:
-    radial-gradient(1200px 600px at 50% -10%, #4a3793 0%, transparent 60%),
-    linear-gradient(180deg, #2a1a63 0%, #1c1142 100%);
+    radial-gradient(circle at 50% 36%, #2b8fff 0%, #0a55cf 48%, #022a73 100%);
   background-attachment: fixed;
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
   min-height: 100vh;
 }
 
-/* ---- Display headline with dark outline (Brawl-Stars style) ---- */
+/* ---- Display headline: Nougat + thick BLACK outline + colored fill ---- */
 .bs-title {
   font-family: var(--font-display), system-ui, sans-serif;
   font-weight: 400;
   letter-spacing: 0.5px;
-  line-height: 1.05;
+  line-height: 0.95;
   color: var(--color-cream);
-  -webkit-text-stroke: 3px var(--color-ink);
+  -webkit-text-stroke: 4px #000;
   paint-order: stroke fill;
-  text-shadow: 0 4px 0 rgba(26, 18, 48, 0.35);
+  text-shadow: 0 5px 0 rgba(0, 0, 0, 0.45);
+  text-transform: uppercase;
 }
 
 /* ---- Chunky 3D button ---- */
@@ -74,9 +78,9 @@ body {
   min-height: 56px;
   padding: 0 1.5rem;
   border-radius: 18px;
-  color: var(--color-ink);
+  color: #000;
   background: var(--color-gold);
-  border: 3px solid var(--color-ink);
+  border: 3px solid #000;
   box-shadow: 0 6px 0 0 var(--color-gold-dark), 0 9px 12px rgba(0, 0, 0, 0.35);
   transition: transform 0.06s ease, box-shadow 0.06s ease;
   cursor: pointer;
@@ -87,14 +91,11 @@ body {
   transform: translateY(4px);
   box-shadow: 0 2px 0 0 var(--color-gold-dark), 0 3px 6px rgba(0, 0, 0, 0.35);
 }
-.bs-btn:disabled {
-  opacity: 0.5;
-  pointer-events: none;
-}
+.bs-btn:disabled { opacity: 0.5; pointer-events: none; }
 
 /* Color variants */
-.bs-btn--purple { background: var(--color-purple); color: #fff; box-shadow: 0 6px 0 0 var(--color-purple-dark), 0 9px 12px rgba(0,0,0,.35); }
-.bs-btn--purple:active { box-shadow: 0 2px 0 0 var(--color-purple-dark), 0 3px 6px rgba(0,0,0,.35); }
+.bs-btn--pink { background: var(--color-pink); color: #fff; box-shadow: 0 6px 0 0 var(--color-pink-dark), 0 9px 12px rgba(0,0,0,.35); }
+.bs-btn--pink:active { box-shadow: 0 2px 0 0 var(--color-pink-dark), 0 3px 6px rgba(0,0,0,.35); }
 .bs-btn--blue { background: var(--color-blue); color: #fff; box-shadow: 0 6px 0 0 var(--color-blue-dark), 0 9px 12px rgba(0,0,0,.35); }
 .bs-btn--blue:active { box-shadow: 0 2px 0 0 var(--color-blue-dark), 0 3px 6px rgba(0,0,0,.35); }
 .bs-btn--green { background: var(--color-green); color: #fff; box-shadow: 0 6px 0 0 var(--color-green-dark), 0 9px 12px rgba(0,0,0,.35); }
@@ -103,19 +104,19 @@ body {
 .bs-btn--red:active { box-shadow: 0 2px 0 0 var(--color-red-dark), 0 3px 6px rgba(0,0,0,.35); }
 
 .bs-btn--ghost {
-  background: transparent;
+  background: rgba(255, 255, 255, 0.08);
   color: var(--color-cream);
-  border: 3px solid rgba(255, 255, 255, 0.25);
+  border: 3px solid rgba(255, 255, 255, 0.3);
   box-shadow: none;
 }
 .bs-btn--ghost:active { transform: translateY(2px); box-shadow: none; }
 
 /* ---- Panel / card ---- */
 .bs-panel {
-  background: var(--color-panel);
-  border: 3px solid var(--color-ink);
+  background: rgba(2, 26, 70, 0.55);
+  border: 3px solid #000;
   border-radius: 22px;
-  box-shadow: 0 8px 0 0 rgba(26, 18, 48, 0.45), inset 0 2px 0 rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 0 0 rgba(0, 0, 0, 0.4), inset 0 2px 0 rgba(255, 255, 255, 0.1);
 }
 
 /* ---- Input ---- */
@@ -124,11 +125,11 @@ body {
   min-height: 52px;
   padding: 0 1rem;
   border-radius: 14px;
-  background: var(--color-bg-deep);
+  background: rgba(2, 26, 70, 0.7);
   color: var(--color-cream);
-  border: 3px solid rgba(255, 255, 255, 0.15);
+  border: 3px solid rgba(255, 255, 255, 0.2);
   font-family: var(--font-sans), sans-serif;
-  font-weight: 700;
+  font-weight: 800;
   font-size: 1rem;
   outline: none;
 }
@@ -142,8 +143,44 @@ body {
   gap: 0.35rem;
   padding: 0.3rem 0.8rem;
   border-radius: 999px;
-  background: var(--color-bg-deep);
-  border: 2px solid rgba(255, 255, 255, 0.15);
-  font-weight: 800;
+  background: rgba(0, 0, 0, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  font-weight: 900;
   font-size: 0.85rem;
+}
+
+/* ---- Info-Chip (Style-Guide: dark pill + icon tile + label + value) ---- */
+.bs-stat {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: var(--color-chip);
+  border: 3px solid #000;
+  border-radius: 14px;
+  padding: 0.4rem 0.7rem 0.4rem 0.4rem;
+  box-shadow: 0 4px 0 0 rgba(0, 0, 0, 0.4);
+}
+.bs-stat__icon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  border: 2px solid #000;
+  font-size: 1.1rem;
+}
+.bs-stat__label {
+  font-size: 0.65rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1;
+}
+.bs-stat__value {
+  font-family: var(--font-display), sans-serif;
+  font-size: 1.1rem;
+  line-height: 1;
+  -webkit-text-stroke: 2px #000;
+  paint-order: stroke fill;
 }

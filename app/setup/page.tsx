@@ -129,7 +129,7 @@ export default function SetupPage() {
             {copied ? "✓" : "Kopieren"}
           </button>
         </div>
-        <p className="text-[color:var(--color-yellow)] text-sm font-bold max-w-sm">
+        <p className="text-[color:var(--color-gold)] text-sm font-bold max-w-sm">
           Nächster Schritt (kommt noch): Pins vor Ort setzen + Aufgaben eingeben.
         </p>
         <Link href="/" className="bs-btn bs-btn--ghost">
@@ -174,7 +174,7 @@ export default function SetupPage() {
             <button
               type="button"
               onClick={() => setCode(randomCode())}
-              className="bs-btn bs-btn--purple shrink-0 px-4 text-2xl"
+              className="bs-btn bs-btn--pink shrink-0 px-4 text-2xl"
             >
               🎲
             </button>
@@ -234,7 +234,7 @@ export default function SetupPage() {
               <button
                 type="button"
                 onClick={() => randomizeTeam(ti)}
-                className="flex-1 bs-btn bs-btn--purple text-base"
+                className="flex-1 bs-btn bs-btn--pink text-base"
               >
                 🎲 Namen
               </button>
