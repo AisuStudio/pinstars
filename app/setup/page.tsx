@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useT, LanguageSwitcher } from "@/lib/i18n";
 
 const RANDOM_NAMES = [
   "Fuchs", "Igel", "Luchs", "Dachs", "Otter", "Biber", "Falke", "Eule",
@@ -27,6 +28,7 @@ function pickRandomNames(n: number) {
 type TeamForm = { name: string; players: string[] };
 
 export default function SetupPage() {
+  const t = useT();
   const [name, setName] = useState("");
   const [code, setCode] = useState(randomCode());
   const [teamCount, setTeamCount] = useState<1 | 2>(2);
@@ -89,10 +91,10 @@ export default function SetupPage() {
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Fehler beim Speichern");
+      if (!res.ok) throw new Error(data.error ?? t("setup.err.save"));
       setGameId(data.gameId);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Unbekannter Fehler");
+      setError(e instanceof Error ? e.message : t("setup.err.unknown"));
     } finally {
       setSaving(false);
     }
@@ -108,10 +110,10 @@ export default function SetupPage() {
       <main className="min-h-screen flex flex-col items-center justify-center p-6 gap-6 text-center">
         <div className="text-5xl">🎉</div>
         <h1 className="bs-title text-4xl text-[color:var(--color-gold)]">
-          SPIEL ANGELEGT!
+          {t("setup.success.title")}
         </h1>
         <p className="text-[color:var(--color-muted)] font-bold max-w-sm">
-          Teile den Link mit den Teams. Geheimer Code zum Starten:
+          {t("setup.success.share")}
         </p>
         <div className="bs-chip text-2xl px-5 py-2 font-display tracking-widest text-[color:var(--color-gold)]">
           {code}
@@ -126,18 +128,17 @@ export default function SetupPage() {
             }}
             className="bs-btn shrink-0"
           >
-            {copied ? "✓" : "Kopieren"}
+            {copied ? "✓" : t("setup.copy")}
           </button>
         </div>
         <Link href={`/setup/${gameId}`} className="bs-btn bs-btn--green text-lg mt-2">
-          📍 Weiter: Pins setzen
+          {t("setup.toPins")}
         </Link>
         <p className="text-[color:var(--color-muted)] text-xs font-semibold max-w-sm">
-          Das machst du vor Ort: zu jedem Versteck gehen → „Pin hier setzen" →
-          Aufgabe + Hinweis eingeben.
+          {t("setup.toPins.hint")}
         </p>
         <Link href="/" className="text-[color:var(--color-muted)] font-bold text-sm">
-          ← Zur Startseite
+          {t("setup.toHome")}
         </Link>
       </main>
     );
@@ -146,28 +147,31 @@ export default function SetupPage() {
   return (
     <main className="min-h-screen p-6">
       <div className="max-w-md mx-auto flex flex-col gap-6">
-        <Link href="/" className="text-[color:var(--color-muted)] font-bold text-sm">
-          ← zurück
-        </Link>
+        <div className="flex items-center justify-between">
+          <Link href="/" className="text-[color:var(--color-muted)] font-bold text-sm">
+            {t("common.back")}
+          </Link>
+          <LanguageSwitcher />
+        </div>
         <h1 className="bs-title text-4xl text-[color:var(--color-gold)]">
-          NEUES SPIEL
+          {t("setup.title")}
         </h1>
 
         <label className="flex flex-col gap-2">
           <span className="font-extrabold text-sm text-[color:var(--color-muted)] uppercase tracking-wide">
-            Spielname
+            {t("setup.gameName")}
           </span>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="z.B. Lottas Geburtstag"
+            placeholder={t("setup.gameName.ph")}
             className="bs-input"
           />
         </label>
 
         <label className="flex flex-col gap-2">
           <span className="font-extrabold text-sm text-[color:var(--color-muted)] uppercase tracking-wide">
-            Geheimer Code
+            {t("setup.code")}
           </span>
           <div className="flex gap-2">
             <input
@@ -187,7 +191,7 @@ export default function SetupPage() {
 
         <div className="flex flex-col gap-2">
           <span className="font-extrabold text-sm text-[color:var(--color-muted)] uppercase tracking-wide">
-            Anzahl Teams
+            {t("setup.teamCount")}
           </span>
           <div className="flex gap-3">
             {[1, 2].map((n) => (
@@ -197,65 +201,67 @@ export default function SetupPage() {
                 onClick={() => setTeamCount(n as 1 | 2)}
                 className={`flex-1 bs-btn ${teamCount === n ? "" : "bs-btn--ghost"}`}
               >
-                {n} Team{n > 1 ? "s" : ""}
+                {n === 1 ? t("setup.team.one", { n }) : t("setup.team.many", { n })}
               </button>
             ))}
           </div>
         </div>
 
-        {activeTeams.map((team, ti) => (
-          <div key={ti} className="bs-panel p-4 flex flex-col gap-3">
-            <input
-              value={team.name}
-              onChange={(e) => updateTeam(ti, { name: e.target.value })}
-              className="bg-transparent text-xl font-display text-[color:var(--color-gold)] outline-none"
-            />
-            {team.players.map((p, pi) => (
-              <div key={pi} className="flex gap-2">
-                <input
-                  value={p}
-                  onChange={(e) => updatePlayer(ti, pi, e.target.value)}
-                  placeholder={`Spieler ${pi + 1}`}
-                  className="bs-input"
-                />
+        {activeTeams.map((team, ti) => {
+          const count = team.players.filter((p) => p.trim()).length;
+          return (
+            <div key={ti} className="bs-panel p-4 flex flex-col gap-3">
+              <input
+                value={team.name}
+                onChange={(e) => updateTeam(ti, { name: e.target.value })}
+                className="bg-transparent text-xl font-display text-[color:var(--color-gold)] outline-none"
+              />
+              {team.players.map((p, pi) => (
+                <div key={pi} className="flex gap-2">
+                  <input
+                    value={p}
+                    onChange={(e) => updatePlayer(ti, pi, e.target.value)}
+                    placeholder={t("setup.player.ph", { n: pi + 1 })}
+                    className="bs-input"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removePlayer(ti, pi)}
+                    className="bs-btn bs-btn--ghost shrink-0 px-3"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+              <div className="flex gap-2">
                 <button
                   type="button"
-                  onClick={() => removePlayer(ti, pi)}
-                  className="bs-btn bs-btn--ghost shrink-0 px-3"
+                  onClick={() => addPlayer(ti)}
+                  className="flex-1 bs-btn bs-btn--blue text-base"
                 >
-                  ✕
+                  {t("setup.addPlayer")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => randomizeTeam(ti)}
+                  className="flex-1 bs-btn bs-btn--pink text-base"
+                >
+                  {t("setup.randomNames")}
                 </button>
               </div>
-            ))}
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => addPlayer(ti)}
-                className="flex-1 bs-btn bs-btn--blue text-base"
-              >
-                + Spieler
-              </button>
-              <button
-                type="button"
-                onClick={() => randomizeTeam(ti)}
-                className="flex-1 bs-btn bs-btn--pink text-base"
-              >
-                🎲 Namen
-              </button>
+              <p className="text-xs text-[color:var(--color-muted)] font-bold">
+                {t("setup.playersPins", { n: count })}
+              </p>
             </div>
-            <p className="text-xs text-[color:var(--color-muted)] font-bold">
-              {team.players.filter((p) => p.trim()).length} Spieler ={" "}
-              {team.players.filter((p) => p.trim()).length} Pins zu suchen
-            </p>
-          </div>
-        ))}
+          );
+        })}
 
         {error && (
           <p className="text-[color:var(--color-red)] text-sm font-bold">{error}</p>
         )}
 
         <button onClick={save} disabled={saving} className="bs-btn bs-btn--green text-xl">
-          {saving ? "Speichern…" : "Spiel anlegen →"}
+          {saving ? t("setup.saving") : t("setup.create")}
         </button>
       </div>
     </main>

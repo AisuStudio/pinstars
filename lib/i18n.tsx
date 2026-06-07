@@ -66,6 +66,30 @@ const de: Dict = {
     "An jedem gefundenen Pin löst die Person, die gerade dran ist, eine Quiz-Frage. Ist die Antwort richtig, wird der nächste Pin freigeschaltet und die nächste Person ist dran. Wer alle Pins gefunden hat, läuft zum gemeinsamen Ziel – und gewinnt!",
   "guide.tip":
     "Tipp: Lasst die Standort-Erlaubnis im Browser zu, sonst kann die App den Pin nicht anpeilen.",
+
+  // setup wizard
+  "setup.title": "NEUES SPIEL",
+  "setup.gameName": "Spielname",
+  "setup.gameName.ph": "z.B. Lottas Geburtstag",
+  "setup.code": "Geheimer Code",
+  "setup.teamCount": "Anzahl Teams",
+  "setup.team.one": "{n} Team",
+  "setup.team.many": "{n} Teams",
+  "setup.player.ph": "Spieler {n}",
+  "setup.addPlayer": "+ Spieler",
+  "setup.randomNames": "🎲 Namen",
+  "setup.playersPins": "{n} Spieler = {n} Pins zu suchen",
+  "setup.saving": "Speichern…",
+  "setup.create": "Spiel anlegen →",
+  "setup.err.save": "Fehler beim Speichern",
+  "setup.err.unknown": "Unbekannter Fehler",
+  "setup.success.title": "SPIEL ANGELEGT!",
+  "setup.success.share": "Teile den Link mit den Teams. Geheimer Code zum Starten:",
+  "setup.copy": "Kopieren",
+  "setup.toPins": "📍 Weiter: Pins setzen",
+  "setup.toPins.hint":
+    "Das machst du vor Ort: zu jedem Versteck gehen → „Pin hier setzen“ → Aufgabe + Hinweis eingeben.",
+  "setup.toHome": "← Zur Startseite",
 };
 
 const en: Dict = {
@@ -112,6 +136,29 @@ const en: Dict = {
     "At each found pin, the person whose turn it is answers a quiz question. If the answer is right, the next pin unlocks and the next person is up. Whoever has found all pins heads to the shared goal – and wins!",
   "guide.tip":
     "Tip: Allow location access in the browser, otherwise the app can't locate the pin.",
+
+  "setup.title": "NEW GAME",
+  "setup.gameName": "Game name",
+  "setup.gameName.ph": "e.g. Lotta's birthday",
+  "setup.code": "Secret code",
+  "setup.teamCount": "Number of teams",
+  "setup.team.one": "{n} Team",
+  "setup.team.many": "{n} Teams",
+  "setup.player.ph": "Player {n}",
+  "setup.addPlayer": "+ Player",
+  "setup.randomNames": "🎲 Names",
+  "setup.playersPins": "{n} players = {n} pins to find",
+  "setup.saving": "Saving…",
+  "setup.create": "Create game →",
+  "setup.err.save": "Error while saving",
+  "setup.err.unknown": "Unknown error",
+  "setup.success.title": "GAME CREATED!",
+  "setup.success.share": "Share the link with the teams. Secret code to start:",
+  "setup.copy": "Copy",
+  "setup.toPins": "📍 Next: place pins",
+  "setup.toPins.hint":
+    "Do this on location: walk to each hiding spot → “Set pin here” → enter task + hint.",
+  "setup.toHome": "← To home",
 };
 
 const tr: Dict = {
@@ -158,6 +205,29 @@ const tr: Dict = {
     "Bulunan her pinde, sırası gelen kişi bir quiz sorusunu cevaplar. Cevap doğruysa bir sonraki pin açılır ve sıra bir sonraki kişiye geçer. Tüm pinleri bulan ortak hedefe gider – ve kazanır!",
   "guide.tip":
     "İpucu: Tarayıcıda konum iznini verin, yoksa uygulama pini bulamaz.",
+
+  "setup.title": "YENİ OYUN",
+  "setup.gameName": "Oyun adı",
+  "setup.gameName.ph": "örn. Lotta'nın doğum günü",
+  "setup.code": "Gizli kod",
+  "setup.teamCount": "Takım sayısı",
+  "setup.team.one": "{n} Takım",
+  "setup.team.many": "{n} Takım",
+  "setup.player.ph": "Oyuncu {n}",
+  "setup.addPlayer": "+ Oyuncu",
+  "setup.randomNames": "🎲 İsimler",
+  "setup.playersPins": "{n} oyuncu = aranacak {n} pin",
+  "setup.saving": "Kaydediliyor…",
+  "setup.create": "Oyun oluştur →",
+  "setup.err.save": "Kaydetme hatası",
+  "setup.err.unknown": "Bilinmeyen hata",
+  "setup.success.title": "OYUN OLUŞTURULDU!",
+  "setup.success.share": "Bağlantıyı takımlarla paylaş. Başlamak için gizli kod:",
+  "setup.copy": "Kopyala",
+  "setup.toPins": "📍 Devam: pinleri koy",
+  "setup.toPins.hint":
+    "Bunu yerinde yap: her saklanma yerine git → “Pini buraya koy” → görev + ipucu gir.",
+  "setup.toHome": "← Ana sayfaya",
 };
 
 const DICTS: Record<Lang, Dict> = { de, en, tr };
