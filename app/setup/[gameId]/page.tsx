@@ -43,6 +43,7 @@ export default function PinSetupPage() {
   const [hint, setHint] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/games/${gameId}`);
@@ -162,6 +163,41 @@ export default function PinSetupPage() {
         <h1 className="bs-title text-3xl text-[color:var(--color-gold)]">
           PINS SETZEN
         </h1>
+
+        {/* share link + code */}
+        <div className="bs-panel p-3 flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-extrabold uppercase text-[color:var(--color-muted)]">
+              Spiele-Link für die Teams
+            </span>
+            <span className="bs-chip font-display text-[color:var(--color-gold)]">
+              Code {game.code}
+            </span>
+          </div>
+          <div className="flex gap-2">
+            <input
+              readOnly
+              value={
+                typeof window !== "undefined"
+                  ? `${window.location.origin}/app/${gameId}`
+                  : ""
+              }
+              className="bs-input font-mono text-xs"
+            />
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(
+                  `${window.location.origin}/app/${gameId}`,
+                );
+                setCopied(true);
+                setTimeout(() => setCopied(false), 1500);
+              }}
+              className="bs-btn shrink-0 px-4"
+            >
+              {copied ? "✓" : "Teilen"}
+            </button>
+          </div>
+        </div>
 
         {/* team switcher */}
         {game.team.length > 1 && (

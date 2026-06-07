@@ -1,0 +1,348 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useParams } from "next/navigation";
+import dynamic from "next/dynamic";
+import { distanceM, heatFor } from "@/lib/geo";
+
+const PlayMap = dynamic(() => import("@/components/PlayMap"), { ssr: false });
+
+type Task = { id: string; question: string; answers: string[]; correct_idx: number };
+type Station = {
+  id: string;
+  idx: number;
+  lat: number;
+  lng: number;
+  radius_m: number;
+  hint: string | null;
+  task: Task[];
+};
+type Player = { id: string; name: string | null; order_idx: number };
+type Team = {
+  id: string;
+  name: string | null;
+  member_count: number | null;
+  current_index: number;
+  current_player_idx: number;
+  player: Player[];
+  station: Station[];
+};
+type Game = { id: string; name: string; code: string; team: Team[] };
+
+export default function PlayPage() {
+  const { gameId } = useParams<{ gameId: string }>();
+  const [game, setGame] = useState<Game | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const [teamId, setTeamId] = useState<string | null>(null);
+  const [started, setStarted] = useState(false);
+  const [codeInput, setCodeInput] = useState("");
+  const [codeError, setCodeError] = useState<string | null>(null);
+
+  // live position
+  const [me, setMe] = useState<[number, number] | null>(null);
+  const [accuracy, setAccuracy] = useState<number | null>(null);
+  const [geoError, setGeoError] = useState<string | null>(null);
+
+  // task answering
+  const [taskOpen, setTaskOpen] = useState(false);
+  const [picked, setPicked] = useState<number | null>(null);
+  const [wrong, setWrong] = useState(false);
+  const [advancing, setAdvancing] = useState(false);
+
+  const lsTeamKey = `pinstars:${gameId}:teamId`;
+  const lsStartKey = `pinstars:${gameId}:started`;
+
+  const load = useCallback(async () => {
+    const res = await fetch(`/api/games/${gameId}`);
+    const data = await res.json();
+    if (!res.ok) return setLoadError(data.error ?? "Spiel nicht gefunden");
+    const g: Game = data.game;
+    g.team.forEach((t) => {
+      t.station.sort((a, b) => a.idx - b.idx);
+      t.player.sort((a, b) => a.order_idx - b.order_idx);
+    });
+    setGame(g);
+  }, [gameId]);
+
+  useEffect(() => {
+    load();
+    setTeamId(localStorage.getItem(lsTeamKey));
+    setStarted(localStorage.getItem(lsStartKey) === "1");
+  }, [load, lsTeamKey, lsStartKey]);
+
+  const team = useMemo(
+    () => game?.team.find((t) => t.id === teamId) ?? null,
+    [game, teamId],
+  );
+  const target = team?.member_count ?? team?.station.length ?? 0;
+  const done = !!team && team.current_index >= target;
+  const station = team?.station[team.current_index] ?? null;
+
+  // geolocation watch (only while actually playing)
+  useEffect(() => {
+    if (!started || !team || done) return;
+    if (!("geolocation" in navigator)) {
+      setGeoError("Kein GPS verfügbar");
+      return;
+    }
+    const id = navigator.geolocation.watchPosition(
+      (pos) => {
+        setMe([pos.coords.latitude, pos.coords.longitude]);
+        setAccuracy(pos.coords.accuracy);
+        setGeoError(null);
+      },
+      (err) => {
+        setGeoError(
+          err.code === err.PERMISSION_DENIED
+            ? "Standort-Erlaubnis nötig"
+            : "GPS-Signal schwach…",
+        );
+      },
+      { enableHighAccuracy: true, maximumAge: 1000, timeout: 15000 },
+    );
+    return () => navigator.geolocation.clearWatch(id);
+  }, [started, team, done]);
+
+  const dist =
+    me && station ? distanceM(me[0], me[1], station.lat, station.lng) : null;
+  const heat = dist != null && station ? heatFor(dist, station.radius_m) : null;
+  const isDA = heat === "DA";
+
+  function joinWithCode() {
+    if (!game) return;
+    if (codeInput.trim().toUpperCase() !== game.code.toUpperCase()) {
+      setCodeError("Falscher Code");
+      return;
+    }
+    setCodeError(null);
+    if (game.team.length === 1) selectTeam(game.team[0].id);
+  }
+  function selectTeam(id: string) {
+    localStorage.setItem(lsTeamKey, id);
+    setTeamId(id);
+  }
+  function startGame() {
+    localStorage.setItem(lsStartKey, "1");
+    setStarted(true);
+  }
+
+  async function answer() {
+    if (picked == null || !station || !team) return;
+    const correct = station.task[0]?.correct_idx;
+    if (picked !== correct) {
+      setWrong(true);
+      return;
+    }
+    // correct → advance
+    setAdvancing(true);
+    const newIndex = team.current_index + 1;
+    try {
+      await fetch(`/api/games/${gameId}/progress`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ teamId: team.id, current_index: newIndex }),
+      });
+    } catch {
+      /* keep going; server retry on next action */
+    }
+    setGame((g) =>
+      g
+        ? {
+            ...g,
+            team: g.team.map((t) =>
+              t.id === team.id ? { ...t, current_index: newIndex } : t,
+            ),
+          }
+        : g,
+    );
+    setTaskOpen(false);
+    setPicked(null);
+    setWrong(false);
+    setAdvancing(false);
+  }
+
+  // ---------- render ----------
+  if (loadError)
+    return (
+      <Center>
+        <p className="text-[color:var(--color-red)] font-bold">{loadError}</p>
+      </Center>
+    );
+  if (!game) return <Center><p className="text-[color:var(--color-muted)] font-bold">Lädt…</p></Center>;
+
+  // JOIN: need code + team
+  if (!team) {
+    return (
+      <Center>
+        <h1 className="bs-title text-4xl text-[color:var(--color-gold)]">{game.name}</h1>
+        <p className="text-[color:var(--color-cyan-light)] font-bold">Geheimen Code eingeben:</p>
+        <input
+          value={codeInput}
+          onChange={(e) => setCodeInput(e.target.value.toUpperCase())}
+          placeholder="CODE"
+          className="bs-input font-display text-3xl tracking-[0.3em] text-center text-[color:var(--color-gold)] max-w-[220px]"
+        />
+        {codeError && <p className="text-[color:var(--color-red)] font-bold">{codeError}</p>}
+        {game.team.length > 1 &&
+        codeInput.trim().toUpperCase() === game.code.toUpperCase() ? (
+          <div className="flex flex-col gap-3 w-full max-w-xs">
+            <p className="text-[color:var(--color-muted)] font-bold">Welches Team seid ihr?</p>
+            {game.team.map((t) => (
+              <button key={t.id} onClick={() => selectTeam(t.id)} className="bs-btn bs-btn--blue">
+                {t.name}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <button onClick={joinWithCode} className="bs-btn text-lg">Beitreten →</button>
+        )}
+      </Center>
+    );
+  }
+
+  // LOBBY
+  if (!started && team.current_index === 0) {
+    const players = team.player;
+    const first = players[0];
+    return (
+      <Center>
+        <h1 className="bs-title text-4xl text-[color:var(--color-gold)]">{team.name}</h1>
+        <p className="text-[color:var(--color-cyan-light)] font-bold">{target} Pins · {players.length} Spieler</p>
+        <div className="bs-panel p-4 flex flex-col gap-2 w-full max-w-xs">
+          {players.map((p, i) => (
+            <div key={p.id} className="flex items-center gap-2 font-bold">
+              <span className="bs-chip text-[color:var(--color-cyan)]">{i + 1}</span>
+              <span>{p.name}</span>
+            </div>
+          ))}
+        </div>
+        <p className="font-bold text-[color:var(--color-gold)]">
+          ⭐ {first?.name} fängt an!
+        </p>
+        <button onClick={startGame} className="bs-btn bs-btn--green text-xl">LOS GEHT&apos;S!</button>
+      </Center>
+    );
+  }
+
+  // DONE
+  if (done) {
+    return (
+      <Center>
+        <div className="text-6xl">🏆</div>
+        <h1 className="bs-title text-4xl text-[color:var(--color-green)]">GESCHAFFT!</h1>
+        <p className="text-[color:var(--color-cyan-light)] font-bold max-w-xs">
+          {team.name} hat alle {target} Pins gefunden und alle Aufgaben gelöst!
+        </p>
+      </Center>
+    );
+  }
+
+  // PLAY
+  const currentPlayer = team.player[team.current_index % team.player.length];
+  return (
+    <main className="min-h-screen flex flex-col">
+      {/* top bar */}
+      <div className="p-3 flex items-center justify-between gap-2">
+        <div className="bs-stat">
+          <div className="bs-stat__icon bg-[color:var(--color-pink)]">⭐</div>
+          <div className="flex flex-col">
+            <span className="bs-stat__label">Dran</span>
+            <span className="bs-stat__value text-[color:var(--color-pink)]">{currentPlayer?.name}</span>
+          </div>
+        </div>
+        <div className="bs-stat">
+          <div className="bs-stat__icon bg-[color:var(--color-gold)]">📍</div>
+          <div className="flex flex-col">
+            <span className="bs-stat__label">Pin</span>
+            <span className="bs-stat__value text-[color:var(--color-gold)]">{team.current_index + 1}/{target}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* map */}
+      <div className="flex-1 relative mx-3 rounded-[16px] overflow-hidden border-[3px] border-black min-h-[40vh]">
+        {station && (
+          <PlayMap
+            target={[station.lat, station.lng]}
+            radiusM={station.radius_m}
+            me={me}
+            reveal={isDA}
+          />
+        )}
+      </div>
+
+      {/* status / DA */}
+      <div className="p-3 flex flex-col gap-2">
+        {geoError && <p className="text-center text-[color:var(--color-red)] font-bold text-sm">{geoError}</p>}
+        {!isDA ? (
+          <div className="bs-panel p-3 text-center flex flex-col gap-1">
+            <span className="font-display text-3xl text-[color:var(--color-cyan)] uppercase">
+              {heat ?? "Suche GPS…"}
+            </span>
+            {dist != null && (
+              <span className="text-[color:var(--color-muted)] font-bold text-sm">
+                noch ~{Math.round(dist)} m{accuracy ? ` · GPS ±${Math.round(accuracy)} m` : ""}
+              </span>
+            )}
+          </div>
+        ) : (
+          <div className="bs-panel p-3 text-center flex flex-col gap-2">
+            <span className="font-display text-3xl text-[color:var(--color-green)]">DA! 🎉</span>
+            {station?.hint && (
+              <span className="font-bold text-[color:var(--color-gold)]">💡 {station.hint}</span>
+            )}
+            <button onClick={() => setTaskOpen(true)} className="bs-btn bs-btn--green text-lg">
+              Aufgabe lösen →
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* task modal */}
+      {taskOpen && station && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-end sm:items-center justify-center p-4">
+          <div className="bs-panel p-5 w-full max-w-md flex flex-col gap-4">
+            <p className="font-bold text-[color:var(--color-cyan-light)] text-sm">
+              {currentPlayer?.name} ist dran:
+            </p>
+            <h2 className="font-display text-2xl text-[color:var(--color-gold)]">
+              {station.task[0]?.question}
+            </h2>
+            <div className="flex flex-col gap-2">
+              {station.task[0]?.answers.map((a, i) => (
+                <button
+                  key={i}
+                  onClick={() => { setPicked(i); setWrong(false); }}
+                  className={`bs-btn ${picked === i ? "bs-btn--blue" : "bs-btn--ghost"} justify-start`}
+                >
+                  {String.fromCharCode(65 + i)}. {a}
+                </button>
+              ))}
+            </div>
+            {wrong && (
+              <p className="text-center font-bold text-[color:var(--color-pink)]">
+                Ups, nochmal versuchen! 🔍
+              </p>
+            )}
+            <button
+              onClick={answer}
+              disabled={picked == null || advancing}
+              className="bs-btn bs-btn--green text-lg"
+            >
+              {advancing ? "…" : "Antwort prüfen"}
+            </button>
+          </div>
+        </div>
+      )}
+    </main>
+  );
+}
+
+function Center({ children }: { children: React.ReactNode }) {
+  return (
+    <main className="min-h-screen flex flex-col items-center justify-center gap-4 p-6 text-center">
+      {children}
+    </main>
+  );
+}

@@ -1,0 +1,28 @@
+// Distance between two lat/lng points in meters (haversine).
+export function distanceM(
+  aLat: number,
+  aLng: number,
+  bLat: number,
+  bLng: number,
+): number {
+  const R = 6371000;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(bLat - aLat);
+  const dLng = toRad(bLng - aLng);
+  const lat1 = toRad(aLat);
+  const lat2 = toRad(bLat);
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+
+export type Heat = "weit" | "nah" | "ganz nah" | "DA";
+
+// Map a distance (m) to a heat stage. radius = "DA" threshold.
+export function heatFor(distance: number, radius: number): Heat {
+  if (distance <= radius) return "DA";
+  if (distance <= radius + 15) return "ganz nah";
+  if (distance <= 50) return "nah";
+  return "weit";
+}
