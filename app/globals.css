@@ -1,26 +1,149 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* ============================================================
+   Pinstars — Brawl-Stars-inspired design system
+   (Platzhalter-Farben + -Fonts; mit echten Werten leicht zu tunen)
+   ============================================================ */
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Backgrounds — tiefes Lila/Navy */
+  --color-bg-deep: #1c1142;
+  --color-bg: #2a1a63;
+  --color-panel: #3a2a7a;
+  --color-panel-2: #4a3793;
+
+  /* Brand / Akzente — kräftig & gesättigt */
+  --color-gold: #ffc83d;
+  --color-gold-dark: #e0a020;
+  --color-yellow: #ffe14d;
+  --color-purple: #8b5cf6;
+  --color-purple-dark: #6d28d9;
+  --color-pink: #ff4d9d;
+  --color-blue: #2ba3ff;
+  --color-blue-dark: #1d7fd6;
+  --color-green: #36d957;
+  --color-green-dark: #23ad3f;
+  --color-red: #ff5247;
+  --color-red-dark: #d6362c;
+
+  /* Ink / Text */
+  --color-ink: #1a1230;
+  --color-cream: #ffffff;
+  --color-muted: #b6a8e0;
+
+  --font-display: var(--font-lilita);
+  --font-sans: var(--font-nunito);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root {
+  --background: #2a1a63;
+  --foreground: #ffffff;
 }
 
 body {
-  background: var(--background);
+  background:
+    radial-gradient(1200px 600px at 50% -10%, #4a3793 0%, transparent 60%),
+    linear-gradient(180deg, #2a1a63 0%, #1c1142 100%);
+  background-attachment: fixed;
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), system-ui, sans-serif;
+  min-height: 100vh;
+}
+
+/* ---- Display headline with dark outline (Brawl-Stars style) ---- */
+.bs-title {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.5px;
+  line-height: 1.05;
+  color: var(--color-cream);
+  -webkit-text-stroke: 3px var(--color-ink);
+  paint-order: stroke fill;
+  text-shadow: 0 4px 0 rgba(26, 18, 48, 0.35);
+}
+
+/* ---- Chunky 3D button ---- */
+.bs-btn {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 56px;
+  padding: 0 1.5rem;
+  border-radius: 18px;
+  color: var(--color-ink);
+  background: var(--color-gold);
+  border: 3px solid var(--color-ink);
+  box-shadow: 0 6px 0 0 var(--color-gold-dark), 0 9px 12px rgba(0, 0, 0, 0.35);
+  transition: transform 0.06s ease, box-shadow 0.06s ease;
+  cursor: pointer;
+  text-transform: uppercase;
+  font-size: 1.05rem;
+}
+.bs-btn:active {
+  transform: translateY(4px);
+  box-shadow: 0 2px 0 0 var(--color-gold-dark), 0 3px 6px rgba(0, 0, 0, 0.35);
+}
+.bs-btn:disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* Color variants */
+.bs-btn--purple { background: var(--color-purple); color: #fff; box-shadow: 0 6px 0 0 var(--color-purple-dark), 0 9px 12px rgba(0,0,0,.35); }
+.bs-btn--purple:active { box-shadow: 0 2px 0 0 var(--color-purple-dark), 0 3px 6px rgba(0,0,0,.35); }
+.bs-btn--blue { background: var(--color-blue); color: #fff; box-shadow: 0 6px 0 0 var(--color-blue-dark), 0 9px 12px rgba(0,0,0,.35); }
+.bs-btn--blue:active { box-shadow: 0 2px 0 0 var(--color-blue-dark), 0 3px 6px rgba(0,0,0,.35); }
+.bs-btn--green { background: var(--color-green); color: #fff; box-shadow: 0 6px 0 0 var(--color-green-dark), 0 9px 12px rgba(0,0,0,.35); }
+.bs-btn--green:active { box-shadow: 0 2px 0 0 var(--color-green-dark), 0 3px 6px rgba(0,0,0,.35); }
+.bs-btn--red { background: var(--color-red); color: #fff; box-shadow: 0 6px 0 0 var(--color-red-dark), 0 9px 12px rgba(0,0,0,.35); }
+.bs-btn--red:active { box-shadow: 0 2px 0 0 var(--color-red-dark), 0 3px 6px rgba(0,0,0,.35); }
+
+.bs-btn--ghost {
+  background: transparent;
+  color: var(--color-cream);
+  border: 3px solid rgba(255, 255, 255, 0.25);
+  box-shadow: none;
+}
+.bs-btn--ghost:active { transform: translateY(2px); box-shadow: none; }
+
+/* ---- Panel / card ---- */
+.bs-panel {
+  background: var(--color-panel);
+  border: 3px solid var(--color-ink);
+  border-radius: 22px;
+  box-shadow: 0 8px 0 0 rgba(26, 18, 48, 0.45), inset 0 2px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* ---- Input ---- */
+.bs-input {
+  width: 100%;
+  min-height: 52px;
+  padding: 0 1rem;
+  border-radius: 14px;
+  background: var(--color-bg-deep);
+  color: var(--color-cream);
+  border: 3px solid rgba(255, 255, 255, 0.15);
+  font-family: var(--font-sans), sans-serif;
+  font-weight: 700;
+  font-size: 1rem;
+  outline: none;
+}
+.bs-input:focus { border-color: var(--color-gold); }
+.bs-input::placeholder { color: var(--color-muted); opacity: 0.7; }
+
+/* ---- Pill / chip ---- */
+.bs-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.8rem;
+  border-radius: 999px;
+  background: var(--color-bg-deep);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  font-weight: 800;
+  font-size: 0.85rem;
 }

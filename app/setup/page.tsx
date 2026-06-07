@@ -105,33 +105,34 @@ export default function SetupPage() {
 
   if (gameId) {
     return (
-      <main className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col items-center justify-center p-6 gap-6">
-        <h1 className="text-2xl font-bold text-lime-300">Spiel angelegt! 🎉</h1>
-        <p className="text-zinc-400 text-center max-w-sm">
-          Teile diesen Link mit den Teams. Der geheime Code zum Starten:{" "}
-          <span className="font-mono text-lime-300 text-lg">{code}</span>
+      <main className="min-h-screen flex flex-col items-center justify-center p-6 gap-6 text-center">
+        <div className="text-5xl">🎉</div>
+        <h1 className="bs-title text-4xl text-[color:var(--color-gold)]">
+          SPIEL ANGELEGT!
+        </h1>
+        <p className="text-[color:var(--color-muted)] font-bold max-w-sm">
+          Teile den Link mit den Teams. Geheimer Code zum Starten:
         </p>
-        <div className="w-full max-w-md flex gap-2">
-          <input
-            readOnly
-            value={gameLink}
-            className="flex-1 rounded-lg bg-zinc-900 border border-zinc-700 px-3 py-3 font-mono text-sm"
-          />
+        <div className="bs-chip text-2xl px-5 py-2 font-display tracking-widest text-[color:var(--color-gold)]">
+          {code}
+        </div>
+        <div className="w-full max-w-md flex gap-2 mt-2">
+          <input readOnly value={gameLink} className="bs-input font-mono text-sm" />
           <button
             onClick={() => {
               navigator.clipboard.writeText(gameLink);
               setCopied(true);
               setTimeout(() => setCopied(false), 1500);
             }}
-            className="rounded-lg bg-lime-300 text-zinc-950 font-semibold px-4 min-h-11"
+            className="bs-btn shrink-0"
           >
             {copied ? "✓" : "Kopieren"}
           </button>
         </div>
-        <p className="text-amber-400/80 text-sm text-center max-w-sm">
+        <p className="text-[color:var(--color-yellow)] text-sm font-bold max-w-sm">
           Nächster Schritt (kommt noch): Pins vor Ort setzen + Aufgaben eingeben.
         </p>
-        <Link href="/" className="text-zinc-500 underline text-sm">
+        <Link href="/" className="bs-btn bs-btn--ghost">
           Zurück
         </Link>
       </main>
@@ -139,32 +140,41 @@ export default function SetupPage() {
   }
 
   return (
-    <main className="min-h-screen bg-zinc-950 text-zinc-100 p-6">
+    <main className="min-h-screen p-6">
       <div className="max-w-md mx-auto flex flex-col gap-6">
-        <h1 className="text-2xl font-bold text-lime-300">Neues Spiel</h1>
+        <Link href="/" className="text-[color:var(--color-muted)] font-bold text-sm">
+          ← zurück
+        </Link>
+        <h1 className="bs-title text-4xl text-[color:var(--color-gold)]">
+          NEUES SPIEL
+        </h1>
 
-        <label className="flex flex-col gap-1">
-          <span className="text-sm text-zinc-400">Spielname</span>
+        <label className="flex flex-col gap-2">
+          <span className="font-extrabold text-sm text-[color:var(--color-muted)] uppercase tracking-wide">
+            Spielname
+          </span>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="z.B. Lottas Geburtstag"
-            className="rounded-lg bg-zinc-900 border border-zinc-700 px-3 py-3 min-h-11"
+            className="bs-input"
           />
         </label>
 
-        <label className="flex flex-col gap-1">
-          <span className="text-sm text-zinc-400">Geheimer Code</span>
+        <label className="flex flex-col gap-2">
+          <span className="font-extrabold text-sm text-[color:var(--color-muted)] uppercase tracking-wide">
+            Geheimer Code
+          </span>
           <div className="flex gap-2">
             <input
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
-              className="flex-1 rounded-lg bg-zinc-900 border border-zinc-700 px-3 py-3 font-mono text-lg tracking-widest min-h-11"
+              className="bs-input font-display text-2xl tracking-[0.3em] text-[color:var(--color-gold)]"
             />
             <button
               type="button"
               onClick={() => setCode(randomCode())}
-              className="rounded-lg border border-zinc-700 px-4 min-h-11"
+              className="bs-btn bs-btn--purple shrink-0 px-4 text-2xl"
             >
               🎲
             </button>
@@ -172,18 +182,16 @@ export default function SetupPage() {
         </label>
 
         <div className="flex flex-col gap-2">
-          <span className="text-sm text-zinc-400">Anzahl Teams</span>
-          <div className="flex gap-2">
+          <span className="font-extrabold text-sm text-[color:var(--color-muted)] uppercase tracking-wide">
+            Anzahl Teams
+          </span>
+          <div className="flex gap-3">
             {[1, 2].map((n) => (
               <button
                 key={n}
                 type="button"
                 onClick={() => setTeamCount(n as 1 | 2)}
-                className={`flex-1 rounded-lg py-3 min-h-11 font-semibold ${
-                  teamCount === n
-                    ? "bg-lime-300 text-zinc-950"
-                    : "border border-zinc-700 text-zinc-300"
-                }`}
+                className={`flex-1 bs-btn ${teamCount === n ? "" : "bs-btn--ghost"}`}
               >
                 {n} Team{n > 1 ? "s" : ""}
               </button>
@@ -192,14 +200,11 @@ export default function SetupPage() {
         </div>
 
         {activeTeams.map((team, ti) => (
-          <div
-            key={ti}
-            className="rounded-xl border border-zinc-800 p-4 flex flex-col gap-3"
-          >
+          <div key={ti} className="bs-panel p-4 flex flex-col gap-3">
             <input
               value={team.name}
               onChange={(e) => updateTeam(ti, { name: e.target.value })}
-              className="bg-transparent text-lg font-semibold text-lime-300 outline-none"
+              className="bg-transparent text-xl font-display text-[color:var(--color-gold)] outline-none"
             />
             {team.players.map((p, pi) => (
               <div key={pi} className="flex gap-2">
@@ -207,12 +212,12 @@ export default function SetupPage() {
                   value={p}
                   onChange={(e) => updatePlayer(ti, pi, e.target.value)}
                   placeholder={`Spieler ${pi + 1}`}
-                  className="flex-1 rounded-lg bg-zinc-900 border border-zinc-700 px-3 py-2.5 min-h-11"
+                  className="bs-input"
                 />
                 <button
                   type="button"
                   onClick={() => removePlayer(ti, pi)}
-                  className="rounded-lg border border-zinc-700 px-3 min-h-11 text-zinc-500"
+                  className="bs-btn bs-btn--ghost shrink-0 px-3"
                 >
                   ✕
                 </button>
@@ -222,32 +227,30 @@ export default function SetupPage() {
               <button
                 type="button"
                 onClick={() => addPlayer(ti)}
-                className="flex-1 rounded-lg border border-zinc-700 py-2.5 min-h-11 text-sm"
+                className="flex-1 bs-btn bs-btn--blue text-base"
               >
                 + Spieler
               </button>
               <button
                 type="button"
                 onClick={() => randomizeTeam(ti)}
-                className="flex-1 rounded-lg border border-zinc-700 py-2.5 min-h-11 text-sm"
+                className="flex-1 bs-btn bs-btn--purple text-base"
               >
-                🎲 Random Namen
+                🎲 Namen
               </button>
             </div>
-            <p className="text-xs text-zinc-500">
+            <p className="text-xs text-[color:var(--color-muted)] font-bold">
               {team.players.filter((p) => p.trim()).length} Spieler ={" "}
               {team.players.filter((p) => p.trim()).length} Pins zu suchen
             </p>
           </div>
         ))}
 
-        {error && <p className="text-red-400 text-sm">{error}</p>}
+        {error && (
+          <p className="text-[color:var(--color-red)] text-sm font-bold">{error}</p>
+        )}
 
-        <button
-          onClick={save}
-          disabled={saving}
-          className="rounded-lg bg-lime-300 text-zinc-950 font-bold py-4 min-h-11 disabled:opacity-50"
-        >
+        <button onClick={save} disabled={saving} className="bs-btn bs-btn--green text-xl">
           {saving ? "Speichern…" : "Spiel anlegen →"}
         </button>
       </div>
