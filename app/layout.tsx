@@ -17,6 +17,7 @@ const nunito = Nunito({
 export const metadata: Metadata = {
   title: "Pinstars",
   description: "Die Geocaching-Schnitzeljagd für den Kindergeburtstag.",
+  robots: { index: false, follow: false },
 };
 
 export const viewport: Viewport = {
