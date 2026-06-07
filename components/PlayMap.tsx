@@ -29,6 +29,31 @@ function FitBoth({
   return null;
 }
 
+/**
+ * Leaflet measures its container on init. Inside a flex column the final
+ * height isn't settled at that moment, so the map comes up at size 0 and
+ * never loads tiles. Re-measure once the layout is painted and whenever the
+ * container resizes.
+ */
+function MapResizer() {
+  const map = useMap();
+  useEffect(() => {
+    const fix = () => map.invalidateSize();
+    const raf = requestAnimationFrame(fix);
+    const t = setTimeout(fix, 200);
+    const ro = new ResizeObserver(fix);
+    ro.observe(map.getContainer());
+    window.addEventListener("resize", fix);
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(t);
+      ro.disconnect();
+      window.removeEventListener("resize", fix);
+    };
+  }, [map]);
+  return null;
+}
+
 export type PlayMapProps = {
   target: [number, number];
   radiusM: number;
@@ -57,6 +82,7 @@ export default function PlayMap({ target, radiusM, me, reveal }: PlayMapProps) {
         }}
       />
       {me && <Marker position={me} icon={meIcon} />}
+      <MapResizer />
       <FitBoth me={me} target={target} />
     </MapContainer>
   );
