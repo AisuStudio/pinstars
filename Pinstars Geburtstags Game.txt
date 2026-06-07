@@ -1,0 +1,31 @@
+Pinstars Geburtstags Game als PWA 
+Geocaching Spiel mit 1-2 Teams.
+url: pinstars.aisu.studio (projekturl, kann sich noch aendern)
+design stil: brawlstars
+
+
+
+SPIELVERLAUF
+Jedes Team muss soviel Pins auf der Map im Spiel finden, wie es Mitspielende gibt.
+Die App waehlt aus, wer bei welchem Team beginnt und den ersten Pin suchen muss.
+In der App gibt es dann eine Art Peilkompass, der dir Richutng und Entfernung zum naechsten Pin anzeigt (Kompass mit entfernungsintensitates anzeige [ weit, nah, ganz nah, DA])
+Wenn DA gilt der Pin als erreicht und eine Aufgabe erscheint und
+Nach jeden Pin muss jeder MitspielerIn der Reihe nach eine Aufgabe loesen um den naechsten Pin freizuschalten.
+Die Aufgaben bestehen aus einer Frage und 3 Multiple Choice Antworten.
+Wenn die Aufgabe geloest ist, wird die naechste Person augewaehlt um den nachsten Pin zu finden.
+
+VORBEREITUNG
+Auf der Website wird ein neues Spiel aufgesetzt: 
+1. Press [NEU]> Spielname anlegen
+2. Spiel Code anlegen
+3. ein oder zwei teams waehlen
+4. Spieler*innen Namen pro Team eingeben oder auf Random schalten.
+5. Pins auf der Map setzen
+6. Aufgaben als Text eingeben. Format:[Frage, Absatz, Antworten:1,2,3, ...]
+6. Speichern
+7. Spiele Link erhalten
+
+SPIELEN
+1. Jedes Team gibt den Spiele Link ein zB. cw3k.aisu.studio/app/[link]
+2. Sie App zeigt die erste Person und den ersten Pin an
+3. Los gehts
