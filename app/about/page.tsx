@@ -25,9 +25,15 @@ export default function AboutPage() {
           </h2>
           <p className="font-bold text-sm leading-relaxed">
             Pinstars ist eine kleine Geocaching-Schnitzeljagd – gemacht für
-            Kindergeburtstage und Ausflüge. Versteckt Pins in eurer Umgebung,
-            denkt euch Quizfragen aus, und lasst die Teams losziehen. Ganz ohne
-            Anmeldung, einfach per Link.
+            Kindergeburtstage und Ausflüge.
+          </p>
+          <p className="font-bold text-sm leading-relaxed">
+            Versteckt Pins in eurer Umgebung, denkt euch Quizfragen aus, und
+            lasst die Teams losziehen. Ganz ohne Anmeldung, einfach per Link.
+          </p>
+          <p className="font-bold text-sm leading-relaxed text-[color:var(--color-muted)]">
+            Pinstars ist kein Brawlstars / SuperCell Produkt und auch nicht
+            kommerziell! Wir sind einfach Fans.
           </p>
         </section>
 
