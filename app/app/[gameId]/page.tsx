@@ -343,7 +343,7 @@ export default function PlayPage() {
       </div>
 
       {/* map */}
-      <div className="flex-1 relative mx-3 rounded-[16px] overflow-hidden border-[3px] border-black min-h-[40vh]">
+      <div className="flex-1 relative isolate mx-3 rounded-[16px] overflow-hidden border-[3px] border-black min-h-[40vh]">
         {station && (
           <PlayMap
             target={[station.lat, station.lng]}
@@ -388,7 +388,7 @@ export default function PlayPage() {
 
       {/* task modal */}
       {taskOpen && station && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-end sm:items-center justify-center p-4">
+        <div className="fixed inset-0 z-[2000] bg-black/60 flex items-end sm:items-center justify-center p-4">
           <div className="bs-panel p-5 w-full max-w-md flex flex-col gap-4">
             <p className="font-bold text-[color:var(--color-cyan-light)] text-sm">
               {turnName} ist dran:
