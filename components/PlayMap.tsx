@@ -67,7 +67,10 @@ export default function PlayMap({ target, radiusM, me, reveal }: PlayMapProps) {
     <MapContainer
       center={target}
       zoom={16}
-      style={{ height: "100%", width: "100%" }}
+      // Fill the (position:relative) wrapper absolutely so Leaflet gets a
+      // concrete pixel size on mount — percentage heights don't reliably
+      // resolve inside a flex column, which left the map at size 0 (blank).
+      style={{ position: "absolute", inset: 0, height: "100%", width: "100%" }}
       attributionControl={false}
     >
       <TileLayer url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png" maxZoom={17} />
