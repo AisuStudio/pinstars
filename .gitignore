@@ -39,3 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Brawl Stars SFX raw library (local only)
+public/sounds/Brawl-Stars-SFX-master/
+public/sounds/*.ogg
+.DS_Store
