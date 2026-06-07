@@ -399,6 +399,14 @@ export default function PinSetupPage() {
               {copied ? "✓" : "Teilen"}
             </button>
           </div>
+          <a
+            href={`/app/${gameId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bs-btn bs-btn--green w-full"
+          >
+            ▶ Spiel öffnen
+          </a>
         </div>
 
         {/* ============ GEMEINSAMES ZIEL (wenn alle Pins gesetzt) ============ */}
