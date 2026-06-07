@@ -5,6 +5,14 @@ import { useParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import { distanceM, heatFor } from "@/lib/geo";
 import { unlockAudio, playArrived, playCorrect, playWrong } from "@/lib/sound";
+import { useT, LanguageSwitcher } from "@/lib/i18n";
+
+const HEAT_KEY: Record<string, string> = {
+  weit: "heat.weit",
+  nah: "heat.nah",
+  "ganz nah": "heat.ganzNah",
+  DA: "heat.da",
+};
 
 const PlayMap = dynamic(() => import("@/components/PlayMap"), { ssr: false });
 
@@ -46,6 +54,7 @@ type Game = {
 
 export default function PlayPage() {
   const { gameId } = useParams<{ gameId: string }>();
+  const t = useT();
   const [game, setGame] = useState<Game | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -71,7 +80,7 @@ export default function PlayPage() {
   const load = useCallback(async () => {
     const res = await fetch(`/api/games/${gameId}`);
     const data = await res.json();
-    if (!res.ok) return setLoadError(data.error ?? "Spiel nicht gefunden");
+    if (!res.ok) return setLoadError(data.error ?? t("play.notFound"));
     const g: Game = data.game;
     g.team.forEach((t) => {
       t.station.sort((a, b) => a.idx - b.idx);
@@ -130,7 +139,7 @@ export default function PlayPage() {
   useEffect(() => {
     if (!started || !team || done) return;
     if (!("geolocation" in navigator)) {
-      setGeoError("Kein GPS verfügbar");
+      setGeoError(t("play.noGps"));
       return;
     }
     const id = navigator.geolocation.watchPosition(
@@ -142,8 +151,8 @@ export default function PlayPage() {
       (err) => {
         setGeoError(
           err.code === err.PERMISSION_DENIED
-            ? "Standort-Erlaubnis nötig"
-            : "GPS-Signal schwach…",
+            ? t("play.geoPerm")
+            : t("play.geoWeak"),
         );
       },
       { enableHighAccuracy: true, maximumAge: 1000, timeout: 15000 },
@@ -166,7 +175,7 @@ export default function PlayPage() {
   function joinWithCode() {
     if (!game) return;
     if (codeInput.trim().toUpperCase() !== game.code.toUpperCase()) {
-      setCodeError("Falscher Code");
+      setCodeError(t("play.wrongCode"));
       return;
     }
     setCodeError(null);
@@ -227,17 +236,20 @@ export default function PlayPage() {
         <p className="text-[color:var(--color-red)] font-bold">{loadError}</p>
       </Center>
     );
-  if (!game) return <Center><p className="text-[color:var(--color-muted)] font-bold">Lädt…</p></Center>;
+  if (!game) return <Center><p className="text-[color:var(--color-muted)] font-bold">{t("play.loading")}</p></Center>;
 
   // JOIN: need code + team
   if (!team) {
     const codeOk = codeInput.trim().toUpperCase() === game.code.toUpperCase();
     return (
       <main className="hero-bg min-h-screen flex flex-col items-center justify-end p-6 pb-[8vh] gap-3">
+        <div className="absolute top-4 right-4">
+          <LanguageSwitcher />
+        </div>
         {game.team.length > 1 && codeOk ? (
           <div className="flex flex-col gap-3 w-full max-w-xs">
             <p className="text-white font-bold text-center drop-shadow-[0_2px_2px_rgba(0,0,0,0.7)]">
-              Welches Team seid ihr?
+              {t("play.whichTeam")}
             </p>
             {game.team.map((t) => (
               <button key={t.id} onClick={() => selectTeam(t.id)} className="bs-btn bs-btn--blue">
@@ -259,7 +271,7 @@ export default function PlayPage() {
               </p>
             )}
             <button onClick={joinWithCode} className="bs-btn text-xl w-full max-w-xs">
-              Beitreten →
+              {t("play.join")}
             </button>
           </>
         )}
@@ -273,8 +285,9 @@ export default function PlayPage() {
     const first = players[0];
     return (
       <Center>
+        <div className="absolute top-4 right-4"><LanguageSwitcher /></div>
         <h1 className="bs-title text-4xl text-[color:var(--color-gold)]">{team.name}</h1>
-        <p className="text-[color:var(--color-cyan-light)] font-bold">{ownTarget} Pins · {players.length} Spieler</p>
+        <p className="text-[color:var(--color-cyan-light)] font-bold">{t("play.lobby.meta", { pins: ownTarget, players: players.length })}</p>
         <div className="bs-panel p-4 flex flex-col gap-2 w-full max-w-xs">
           {players.map((p, i) => (
             <div key={p.id} className="flex items-center gap-2 font-bold">
@@ -286,20 +299,20 @@ export default function PlayPage() {
         {team.mission?.trim() && (
           <div className="bs-panel p-4 w-full max-w-xs flex flex-col gap-1 text-left">
             <span className="text-xs font-extrabold uppercase text-[color:var(--color-cyan-light)]">
-              🎯 Eure Mission
+              {t("play.lobby.mission")}
             </span>
             <p className="font-bold text-sm">{team.mission}</p>
           </div>
         )}
         {hasGoal && (
           <p className="text-[color:var(--color-muted)] font-bold text-sm">
-            🏁 Am Ende wartet ein gemeinsames Ziel für alle Teams!
+            {t("play.lobby.goalNote")}
           </p>
         )}
         <p className="font-bold text-[color:var(--color-gold)]">
-          ⭐ {first?.name} fängt an!
+          {t("play.lobby.starts", { name: first?.name ?? "" })}
         </p>
-        <button onClick={startGame} className="bs-btn bs-btn--green text-xl">LOS GEHT&apos;S!</button>
+        <button onClick={startGame} className="bs-btn bs-btn--green text-xl">{t("play.lobby.go")}</button>
       </Center>
     );
   }
@@ -309,9 +322,9 @@ export default function PlayPage() {
     return (
       <Center>
         <div className="text-6xl">🏆</div>
-        <h1 className="bs-title text-4xl text-[color:var(--color-green)]">GESCHAFFT!</h1>
+        <h1 className="bs-title text-4xl text-[color:var(--color-green)]">{t("play.done.title")}</h1>
         <p className="text-[color:var(--color-cyan-light)] font-bold max-w-xs">
-          {team.name} hat alle {target} Pins gefunden und alle Aufgaben gelöst!
+          {t("play.done.text", { team: team.name ?? "", n: target })}
         </p>
       </Center>
     );
@@ -319,7 +332,7 @@ export default function PlayPage() {
 
   // PLAY
   const currentPlayer = team.player[team.current_index % team.player.length];
-  const turnName = isGoalStation ? "Alle zusammen" : currentPlayer?.name;
+  const turnName = isGoalStation ? t("play.allTogether") : currentPlayer?.name;
   return (
     <main className="min-h-screen flex flex-col">
       {/* top bar */}
@@ -327,16 +340,16 @@ export default function PlayPage() {
         <div className="bs-stat">
           <div className="bs-stat__icon bg-[color:var(--color-pink)]">{isGoalStation ? "🏁" : "⭐"}</div>
           <div className="flex flex-col">
-            <span className="bs-stat__label">Dran</span>
+            <span className="bs-stat__label">{t("play.turn")}</span>
             <span className="bs-stat__value text-[color:var(--color-pink)]">{turnName}</span>
           </div>
         </div>
         <div className="bs-stat">
           <div className="bs-stat__icon bg-[color:var(--color-gold)]">{isGoalStation ? "🏁" : "📍"}</div>
           <div className="flex flex-col">
-            <span className="bs-stat__label">{isGoalStation ? "Ziel" : "Pin"}</span>
+            <span className="bs-stat__label">{isGoalStation ? t("play.goal") : t("play.pin")}</span>
             <span className="bs-stat__value text-[color:var(--color-gold)]">
-              {isGoalStation ? "Finale!" : `${team.current_index + 1}/${target}`}
+              {isGoalStation ? t("play.finale") : `${team.current_index + 1}/${target}`}
             </span>
           </div>
         </div>
@@ -360,18 +373,19 @@ export default function PlayPage() {
         {!isDA ? (
           <div className="bs-panel p-3 text-center flex flex-col gap-1">
             <span className="font-display text-3xl text-[color:var(--color-cyan)] uppercase">
-              {heat ?? "Suche GPS…"}
+              {heat ? t(HEAT_KEY[heat]) : t("play.searchGps")}
             </span>
             {dist != null && (
               <span className="text-[color:var(--color-muted)] font-bold text-sm">
-                noch ~{Math.round(dist)} m{accuracy ? ` · GPS ±${Math.round(accuracy)} m` : ""}
+                {t("play.distance", { d: Math.round(dist) })}
+                {accuracy ? t("play.gpsAcc", { a: Math.round(accuracy) }) : ""}
               </span>
             )}
           </div>
         ) : (
           <div className="bs-panel p-3 text-center flex flex-col gap-2">
             <span className="font-display text-3xl text-[color:var(--color-green)]">
-              {isGoalStation ? "ZIEL! 🏁" : "DA! 🎉"}
+              {isGoalStation ? t("play.daGoal") : t("play.da")}
             </span>
             {station?.hint && (
               <span className="font-bold text-[color:var(--color-gold)]">💡 {station.hint}</span>
@@ -380,7 +394,7 @@ export default function PlayPage() {
               onClick={() => { unlockAudio(); setTaskOpen(true); }}
               className="bs-btn bs-btn--green text-lg"
             >
-              {isGoalStation ? "Letzte Aufgabe lösen →" : "Aufgabe lösen →"}
+              {isGoalStation ? t("play.solveLast") : t("play.solve")}
             </button>
           </div>
         )}
@@ -391,7 +405,7 @@ export default function PlayPage() {
         <div className="fixed inset-0 z-[2000] bg-black/60 flex items-end sm:items-center justify-center p-4">
           <div className="bs-panel p-5 w-full max-w-md flex flex-col gap-4">
             <p className="font-bold text-[color:var(--color-cyan-light)] text-sm">
-              {turnName} ist dran:
+              {t("play.turnOf", { name: turnName ?? "" })}
             </p>
             <h2 className="font-display text-2xl text-[color:var(--color-gold)]">
               {station.task[0]?.question}
@@ -409,7 +423,7 @@ export default function PlayPage() {
             </div>
             {wrong && (
               <p className="text-center font-bold text-[color:var(--color-pink)]">
-                Ups, nochmal versuchen! 🔍
+                {t("play.tryAgain")}
               </p>
             )}
             <button
@@ -417,7 +431,7 @@ export default function PlayPage() {
               disabled={picked == null || advancing}
               className="bs-btn bs-btn--green text-lg"
             >
-              {advancing ? "…" : "Antwort prüfen"}
+              {advancing ? "…" : t("play.check")}
             </button>
           </div>
         </div>
