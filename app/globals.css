@@ -162,14 +162,14 @@ body {
   background: var(--color-chip);
   border: 3px solid #000;
   border-radius: 14px;
-  padding: 0.4rem 0.7rem 0.4rem 0.4rem;
+  padding: 0.65rem 0.8rem 0.65rem 0.5rem;
   box-shadow: 0 4px 0 0 rgba(0, 0, 0, 0.4);
 }
 .bs-stat__icon {
   display: grid;
   place-items: center;
-  width: 38px;
-  height: 38px;
+  width: 42px;
+  height: 42px;
   border-radius: 10px;
   border: 2px solid #000;
   font-size: 1.1rem;
