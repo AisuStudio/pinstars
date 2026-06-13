@@ -19,6 +19,11 @@ export const metadata: Metadata = {
   title: "Pinstars",
   description: "Die Geocaching-Schnitzeljagd für den Kindergeburtstag.",
   robots: { index: false, follow: false },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Pinstars",
+  },
 };
 
 export const viewport: Viewport = {
