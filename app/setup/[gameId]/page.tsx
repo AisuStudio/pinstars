@@ -407,6 +407,22 @@ export default function PinSetupPage() {
           >
             ▶ Spiel öffnen
           </a>
+          <button
+            onClick={async () => {
+              if (
+                !confirm(
+                  "Fortschritt aller Teams zurücksetzen? (Pins & Aufgaben bleiben — das Spiel kann neu gespielt werden.)",
+                )
+              )
+                return;
+              await fetch(`/api/games/${gameId}/reset`, { method: "POST" });
+              await load();
+              alert("Fortschritt zurückgesetzt — das Spiel ist startklar.");
+            }}
+            className="bs-btn bs-btn--ghost w-full text-sm"
+          >
+            🔁 Fortschritt zurücksetzen (nochmal spielbar)
+          </button>
         </div>
 
         {/* ============ GEMEINSAMES ZIEL (wenn alle Pins gesetzt) ============ */}

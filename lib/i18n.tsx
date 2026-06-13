@@ -123,6 +123,8 @@ const de: Dict = {
   "play.turnOf": "{name} ist dran:",
   "play.tryAgain": "Ups, nochmal versuchen! 🔍",
   "play.check": "Antwort prüfen",
+  "play.replay": "🔁 Nochmal spielen",
+  "play.replayWait": "Setze zurück…",
 };
 
 const en: Dict = {
@@ -223,6 +225,8 @@ const en: Dict = {
   "play.turnOf": "{name}'s turn:",
   "play.tryAgain": "Oops, try again! 🔍",
   "play.check": "Check answer",
+  "play.replay": "🔁 Play again",
+  "play.replayWait": "Resetting…",
 };
 
 const tr: Dict = {
@@ -323,6 +327,8 @@ const tr: Dict = {
   "play.turnOf": "Sıra {name}:",
   "play.tryAgain": "Hata, tekrar dene! 🔍",
   "play.check": "Cevabı kontrol et",
+  "play.replay": "🔁 Tekrar oyna",
+  "play.replayWait": "Sıfırlanıyor…",
 };
 
 const DICTS: Record<Lang, Dict> = { de, en, tr };

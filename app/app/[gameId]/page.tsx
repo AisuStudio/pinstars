@@ -73,6 +73,7 @@ export default function PlayPage() {
   const [picked, setPicked] = useState<number | null>(null);
   const [wrong, setWrong] = useState(false);
   const [advancing, setAdvancing] = useState(false);
+  const [replaying, setReplaying] = useState(false);
 
   const lsTeamKey = `pinstars:${gameId}:teamId`;
   const lsStartKey = `pinstars:${gameId}:started`;
@@ -190,6 +191,31 @@ export default function PlayPage() {
     unlockAudio();
     localStorage.setItem(lsStartKey, "1");
     setStarted(true);
+  }
+
+  async function replay() {
+    setReplaying(true);
+    try {
+      await fetch(`/api/games/${gameId}/reset`, { method: "POST" });
+    } catch {
+      /* ignore — local reset below still returns to lobby */
+    }
+    // Back to the lobby on this device (server reset all teams to index 0).
+    localStorage.removeItem(lsStartKey);
+    setStarted(false);
+    setGame((g) =>
+      g
+        ? {
+            ...g,
+            team: g.team.map((tm) => ({
+              ...tm,
+              current_index: 0,
+              current_player_idx: 0,
+            })),
+          }
+        : g,
+    );
+    setReplaying(false);
   }
 
   async function answer() {
@@ -326,6 +352,13 @@ export default function PlayPage() {
         <p className="text-[color:var(--color-cyan-light)] font-bold max-w-xs">
           {t("play.done.text", { team: team.name ?? "", n: target })}
         </p>
+        <button
+          onClick={replay}
+          disabled={replaying}
+          className="bs-btn bs-btn--blue text-lg mt-2"
+        >
+          {replaying ? t("play.replayWait") : t("play.replay")}
+        </button>
       </Center>
     );
   }
