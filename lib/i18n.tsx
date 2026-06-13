@@ -125,6 +125,9 @@ const de: Dict = {
   "play.check": "Antwort prüfen",
   "play.replay": "🔁 Nochmal spielen",
   "play.replayWait": "Setze zurück…",
+  "play.weAreHere": "✓ Wir sind da",
+  "play.offline": "Offline – Spiel läuft lokal weiter",
+  "play.testMode": "🧪 Testmodus",
 };
 
 const en: Dict = {
@@ -227,6 +230,9 @@ const en: Dict = {
   "play.check": "Check answer",
   "play.replay": "🔁 Play again",
   "play.replayWait": "Resetting…",
+  "play.weAreHere": "✓ We're here",
+  "play.offline": "Offline – game continues locally",
+  "play.testMode": "🧪 Test mode",
 };
 
 const tr: Dict = {
@@ -329,6 +335,9 @@ const tr: Dict = {
   "play.check": "Cevabı kontrol et",
   "play.replay": "🔁 Tekrar oyna",
   "play.replayWait": "Sıfırlanıyor…",
+  "play.weAreHere": "✓ Buradayız",
+  "play.offline": "Çevrimdışı – oyun yerel olarak devam ediyor",
+  "play.testMode": "🧪 Test modu",
 };
 
 const DICTS: Record<Lang, Dict> = { de, en, tr };

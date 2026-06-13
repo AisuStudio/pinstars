@@ -75,26 +75,73 @@ export default function PlayPage() {
   const [advancing, setAdvancing] = useState(false);
   const [replaying, setReplaying] = useState(false);
 
+  // robustness: manual "we're here" override, stuck timer, test mode, offline
+  const [manualHere, setManualHere] = useState(false);
+  const [stuckReady, setStuckReady] = useState(false);
+  const [testMode, setTestMode] = useState(false);
+  const [offline, setOffline] = useState(false);
+
   const lsTeamKey = `pinstars:${gameId}:teamId`;
   const lsStartKey = `pinstars:${gameId}:started`;
+  const lsTestKey = `pinstars:${gameId}:test`;
+  const lsGameKey = `pinstars:${gameId}:game`;
+  const idxKey = (tid: string) => `pinstars:${gameId}:idx:${tid}`;
 
   const load = useCallback(async () => {
-    const res = await fetch(`/api/games/${gameId}`);
-    const data = await res.json();
-    if (!res.ok) return setLoadError(data.error ?? t("play.notFound"));
-    const g: Game = data.game;
-    g.team.forEach((t) => {
-      t.station.sort((a, b) => a.idx - b.idx);
-      t.player.sort((a, b) => a.order_idx - b.order_idx);
-    });
-    setGame(g);
+    try {
+      const res = await fetch(`/api/games/${gameId}`);
+      const data = await res.json();
+      if (!res.ok) return setLoadError(data.error ?? t("play.notFound"));
+      const g: Game = data.game;
+      g.team.forEach((tm) => {
+        tm.station.sort((a, b) => a.idx - b.idx);
+        tm.player.sort((a, b) => a.order_idx - b.order_idx);
+        // reconcile with local mirror: if a save was lost (bad signal), the
+        // local index can be ahead of the server → adopt it + push to server.
+        // Guard: server index 0 means fresh OR just-reset → server is
+        // authoritative, drop any stale mirror so a reset can't be resurrected.
+        const local = Number(localStorage.getItem(idxKey(tm.id)) ?? "-1");
+        if (tm.current_index === 0) {
+          if (local >= 0) localStorage.removeItem(idxKey(tm.id));
+        } else if (local > tm.current_index) {
+          tm.current_index = local;
+          fetch(`/api/games/${gameId}/progress`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ teamId: tm.id, current_index: local }),
+          }).catch(() => {});
+        }
+      });
+      setGame(g);
+      setOffline(false);
+      try {
+        localStorage.setItem(lsGameKey, JSON.stringify(g));
+      } catch {
+        /* quota — ignore */
+      }
+    } catch {
+      // network failure (forest / offline) → fall back to last cached game
+      const cached = localStorage.getItem(lsGameKey);
+      if (cached) {
+        try {
+          setGame(JSON.parse(cached));
+          setOffline(true);
+          return;
+        } catch {
+          /* corrupt cache — fall through */
+        }
+      }
+      setLoadError(t("play.offline"));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameId]);
 
   useEffect(() => {
     load();
     setTeamId(localStorage.getItem(lsTeamKey));
     setStarted(localStorage.getItem(lsStartKey) === "1");
-  }, [load, lsTeamKey, lsStartKey]);
+    setTestMode(localStorage.getItem(lsTestKey) === "1");
+  }, [load, lsTeamKey, lsStartKey, lsTestKey]);
 
   const team = useMemo(
     () => game?.team.find((t) => t.id === teamId) ?? null,
@@ -165,13 +212,26 @@ export default function PlayPage() {
     me && station ? distanceM(me[0], me[1], station.lat, station.lng) : null;
   const heat = dist != null && station ? heatFor(dist, station.radius_m) : null;
   const isDA = heat === "DA";
+  // "reached" = GPS hit the zone, OR the adult manually confirmed arrival
+  // (GPS stuck under tree cover), OR test mode.
+  const reached = isDA || manualHere || testMode;
 
-  // Voice line + chime the moment a pin is reached ("DA").
-  const wasDA = useRef(false);
+  // Reset manual override + stuck timer whenever the target pin changes.
+  const pinIndex = team?.current_index ?? -1;
   useEffect(() => {
-    if (isDA && !wasDA.current) playArrived();
-    wasDA.current = isDA;
-  }, [isDA]);
+    setManualHere(false);
+    setStuckReady(false);
+    if (!started || done) return;
+    const id = setTimeout(() => setStuckReady(true), 30000);
+    return () => clearTimeout(id);
+  }, [pinIndex, started, done]);
+
+  // Voice line + chime the moment a pin is reached.
+  const wasReached = useRef(false);
+  useEffect(() => {
+    if (reached && !wasReached.current) playArrived();
+    wasReached.current = reached;
+  }, [reached]);
 
   function joinWithCode() {
     if (!game) return;
@@ -202,6 +262,13 @@ export default function PlayPage() {
     }
     // Back to the lobby on this device (server reset all teams to index 0).
     localStorage.removeItem(lsStartKey);
+    // Clear local progress mirrors so they can't resurrect the finished game.
+    game?.team.forEach((tm) => localStorage.removeItem(idxKey(tm.id)));
+    try {
+      localStorage.removeItem(lsGameKey);
+    } catch {
+      /* ignore */
+    }
     setStarted(false);
     setGame((g) =>
       g
@@ -230,6 +297,13 @@ export default function PlayPage() {
     playCorrect();
     setAdvancing(true);
     const newIndex = team.current_index + 1;
+    // Write the local mirror FIRST so progress survives even if the network
+    // save fails (forest signal). load() reconciles server ← local on reopen.
+    try {
+      localStorage.setItem(idxKey(team.id), String(newIndex));
+    } catch {
+      /* ignore */
+    }
     try {
       await fetch(`/api/games/${gameId}/progress`, {
         method: "POST",
@@ -237,7 +311,7 @@ export default function PlayPage() {
         body: JSON.stringify({ teamId: team.id, current_index: newIndex }),
       });
     } catch {
-      /* keep going; server retry on next action */
+      /* save failed — local mirror + load() reconcile will recover it */
     }
     setGame((g) =>
       g
@@ -339,6 +413,20 @@ export default function PlayPage() {
           {t("play.lobby.starts", { name: first?.name ?? "" })}
         </p>
         <button onClick={startGame} className="bs-btn bs-btn--green text-xl">{t("play.lobby.go")}</button>
+        <button
+          onClick={() => {
+            const v = !testMode;
+            setTestMode(v);
+            try {
+              localStorage.setItem(lsTestKey, v ? "1" : "0");
+            } catch {
+              /* ignore */
+            }
+          }}
+          className={`text-xs font-bold mt-1 ${testMode ? "text-[color:var(--color-gold)]" : "text-[color:var(--color-muted)]/60"}`}
+        >
+          {t("play.testMode")} {testMode ? "AN" : "AUS"}
+        </button>
       </Center>
     );
   }
@@ -395,16 +483,21 @@ export default function PlayPage() {
             target={[station.lat, station.lng]}
             radiusM={station.radius_m}
             me={me}
-            reveal={isDA}
+            reveal={reached}
           />
         )}
       </div>
 
       {/* status / DA */}
       <div className="p-3 flex flex-col gap-2">
+        {offline && (
+          <p className="text-center text-[color:var(--color-gold)] font-bold text-xs">
+            📡 {t("play.offline")}
+          </p>
+        )}
         {geoError && <p className="text-center text-[color:var(--color-red)] font-bold text-sm">{geoError}</p>}
-        {!isDA ? (
-          <div className="bs-panel p-3 text-center flex flex-col gap-1">
+        {!reached ? (
+          <div className="bs-panel p-3 text-center flex flex-col gap-2">
             <span className="font-display text-3xl text-[color:var(--color-cyan)] uppercase">
               {heat ? t(HEAT_KEY[heat]) : t("play.searchGps")}
             </span>
@@ -413,6 +506,14 @@ export default function PlayPage() {
                 {t("play.distance", { d: Math.round(dist) })}
                 {accuracy ? t("play.gpsAcc", { a: Math.round(accuracy) }) : ""}
               </span>
+            )}
+            {(heat === "ganz nah" || stuckReady) && (
+              <button
+                onClick={() => setManualHere(true)}
+                className="bs-btn bs-btn--ghost text-sm"
+              >
+                {t("play.weAreHere")}
+              </button>
             )}
           </div>
         ) : (
