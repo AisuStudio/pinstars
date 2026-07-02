@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useT, LanguageSwitcher } from "@/lib/i18n";
 
 const PinMap = dynamic(() => import("@/components/PinMap"), { ssr: false });
 
@@ -37,6 +38,7 @@ type Capture = { lat: number; lng: number; accuracy: number };
 
 export default function PinSetupPage() {
   const { gameId } = useParams<{ gameId: string }>();
+  const t = useT();
   const [game, setGame] = useState<Game | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [activeTeam, setActiveTeam] = useState(0);
@@ -66,24 +68,22 @@ export default function PinSetupPage() {
     const res = await fetch(`/api/games/${gameId}`);
     const data = await res.json();
     if (!res.ok) {
-      setLoadError(data.error ?? "Fehler");
+      setLoadError(data.error ?? t("pinsetup.err"));
       return;
     }
-    // sort teams + stations stably
     const g: Game = data.game;
     g.team.sort((a, b) => (a.name ?? "").localeCompare(b.name ?? ""));
-    g.team.forEach((t) => t.station.sort((a, b) => a.idx - b.idx));
+    g.team.forEach((tm) => tm.station.sort((a, b) => a.idx - b.idx));
     setGame(g);
-  }, [gameId]);
+  }, [gameId, t]);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  // keep mission textarea in sync with the selected team
   useEffect(() => {
-    const t = game?.team[activeTeam];
-    setMission(t?.mission ?? "");
+    const tm = game?.team[activeTeam];
+    setMission(tm?.mission ?? "");
     setMissionEditing(false);
   }, [activeTeam, game]);
 
@@ -117,8 +117,8 @@ export default function PinSetupPage() {
       (err) => {
         setGeoError(
           err.code === err.PERMISSION_DENIED
-            ? "Standort-Erlaubnis verweigert"
-            : "Standort nicht verfügbar — kurz warten und nochmal",
+            ? t("pinsetup.geo.denied")
+            : t("pinsetup.geo.unavail"),
         );
         setLocating(false);
       },
@@ -138,12 +138,12 @@ export default function PinSetupPage() {
       });
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error ?? "Fehler");
+        throw new Error(data.error ?? t("pinsetup.err"));
       }
       setMissionEditing(false);
       await load();
     } catch (e) {
-      setGeoError(e instanceof Error ? e.message : "Fehler"); // surface near mission
+      setGeoError(e instanceof Error ? e.message : t("pinsetup.err"));
     } finally {
       setMissionSaving(false);
     }
@@ -157,8 +157,8 @@ export default function PinSetupPage() {
   }
 
   function editMission() {
-    const t = game?.team[activeTeam];
-    setMission(t?.mission ?? "");
+    const tm = game?.team[activeTeam];
+    setMission(tm?.mission ?? "");
     setMissionEditing(true);
   }
 
@@ -185,11 +185,11 @@ export default function PinSetupPage() {
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Fehler");
+      if (!res.ok) throw new Error(data.error ?? t("pinsetup.err"));
       resetForm();
       await load();
     } catch (e) {
-      setSaveError(e instanceof Error ? e.message : "Fehler");
+      setSaveError(e instanceof Error ? e.message : t("pinsetup.err"));
     } finally {
       setSaving(false);
     }
@@ -214,11 +214,11 @@ export default function PinSetupPage() {
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Fehler");
+      if (!res.ok) throw new Error(data.error ?? t("pinsetup.err"));
       resetForm();
       await load();
     } catch (e) {
-      setSaveError(e instanceof Error ? e.message : "Fehler");
+      setSaveError(e instanceof Error ? e.message : t("pinsetup.err"));
     } finally {
       setSaving(false);
     }
@@ -234,7 +234,7 @@ export default function PinSetupPage() {
   if (!game) {
     return (
       <main className="min-h-screen grid place-items-center p-6">
-        <p className="text-[color:var(--color-muted)] font-bold">Lädt…</p>
+        <p className="text-[color:var(--color-muted)] font-bold">{t("pinsetup.loading")}</p>
       </main>
     );
   }
@@ -243,7 +243,7 @@ export default function PinSetupPage() {
   const target = team.member_count ?? team.station.length;
   const done = team.station.length >= target;
   const allDone = game.team.every(
-    (t) => t.station.length >= (t.member_count ?? 0),
+    (tm) => tm.station.length >= (tm.member_count ?? 0),
   );
   const goalSet = game.goal_lat != null && game.goal_lng != null;
   const missionDone =
@@ -251,7 +251,6 @@ export default function PinSetupPage() {
   const formValid =
     capture && question.trim() && answers.every((a) => a.trim());
 
-  // The reusable GPS + task fields (used by pin form AND goal step).
   const captureFields = (
     <>
       {!capture ? (
@@ -261,7 +260,7 @@ export default function PinSetupPage() {
             disabled={locating}
             className="bs-btn bs-btn--pink text-lg"
           >
-            {locating ? "Suche Standort…" : "📍 Hier setzen"}
+            {locating ? t("pinsetup.locating") : t("pinsetup.locate")}
           </button>
           {geoError && (
             <p className="text-[color:var(--color-red)] text-sm font-bold">
@@ -269,8 +268,7 @@ export default function PinSetupPage() {
             </p>
           )}
           <p className="text-[color:var(--color-muted)] text-xs font-semibold">
-            Geh zum Ort und tippe „Hier setzen" — dein aktueller GPS-Standort
-            wird übernommen.
+            {t("pinsetup.locate.hint")}
           </p>
         </>
       ) : (
@@ -280,24 +278,24 @@ export default function PinSetupPage() {
           </div>
           <div className="flex items-center justify-between">
             <span className="bs-chip text-[color:var(--color-cyan)]">
-              Genauigkeit ±{Math.round(capture.accuracy)} m
+              {t("pinsetup.accuracy", { n: Math.round(capture.accuracy) })}
             </span>
             <button
               onClick={locate}
               className="bs-btn bs-btn--ghost text-sm px-3 min-h-10"
             >
-              Neu messen
+              {t("pinsetup.remeasure")}
             </button>
           </div>
 
           <label className="flex flex-col gap-1">
             <span className="text-xs font-extrabold uppercase text-[color:var(--color-muted)]">
-              Frage
+              {t("pinsetup.question")}
             </span>
             <textarea
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
-              placeholder="z.B. Wie viele Beine hat eine Spinne?"
+              placeholder={t("pinsetup.question.ph")}
               rows={2}
               className="bs-input py-3 resize-none"
             />
@@ -305,7 +303,7 @@ export default function PinSetupPage() {
 
           <div className="flex flex-col gap-2">
             <span className="text-xs font-extrabold uppercase text-[color:var(--color-muted)]">
-              Antworten (richtige antippen)
+              {t("pinsetup.answers")}
             </span>
             {answers.map((a, i) => (
               <div key={i} className="flex gap-2 items-center">
@@ -327,7 +325,7 @@ export default function PinSetupPage() {
                       prev.map((x, j) => (j === i ? e.target.value : x)),
                     )
                   }
-                  placeholder={`Antwort ${String.fromCharCode(65 + i)}`}
+                  placeholder={t("pinsetup.answer.ph", { letter: String.fromCharCode(65 + i) })}
                   className="bs-input"
                 />
               </div>
@@ -336,12 +334,12 @@ export default function PinSetupPage() {
 
           <label className="flex flex-col gap-1">
             <span className="text-xs font-extrabold uppercase text-[color:var(--color-muted)]">
-              Hinweis bei „DA" (optional)
+              {t("pinsetup.hint")}
             </span>
             <input
               value={hint}
               onChange={(e) => setHint(e.target.value)}
-              placeholder="z.B. Schau am Zaun"
+              placeholder={t("pinsetup.hint.ph")}
               className="bs-input"
             />
           </label>
@@ -359,21 +357,24 @@ export default function PinSetupPage() {
   return (
     <main className="min-h-screen p-5 pb-24">
       <div className="max-w-md mx-auto flex flex-col gap-5">
-        <Link href="/" className="text-[color:var(--color-muted)] font-bold text-sm">
-          ← {game.name}
-        </Link>
+        <div className="flex items-center justify-between">
+          <Link href="/" className="text-[color:var(--color-muted)] font-bold text-sm">
+            ← {game.name}
+          </Link>
+          <LanguageSwitcher />
+        </div>
         <h1 className="bs-title text-3xl text-[color:var(--color-gold)]">
-          PINS SETZEN
+          {t("pinsetup.title")}
         </h1>
 
         {/* share link + code */}
         <div className="bs-panel p-3 flex flex-col gap-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-extrabold uppercase text-[color:var(--color-muted)]">
-              Spiele-Link für die Teams
+              {t("pinsetup.shareLink")}
             </span>
             <span className="bs-chip font-display text-[color:var(--color-gold)]">
-              Code {game.code}
+              {t("pinsetup.code", { code: game.code })}
             </span>
           </div>
           <div className="flex gap-2">
@@ -396,7 +397,7 @@ export default function PinSetupPage() {
               }}
               className="bs-btn shrink-0 px-4"
             >
-              {copied ? "✓" : "Teilen"}
+              {copied ? "✓" : t("pinsetup.share")}
             </button>
           </div>
           <a
@@ -405,35 +406,29 @@ export default function PinSetupPage() {
             rel="noopener noreferrer"
             className="bs-btn bs-btn--green w-full"
           >
-            ▶ Spiel öffnen
+            {t("pinsetup.openGame")}
           </a>
           <button
             onClick={async () => {
-              if (
-                !confirm(
-                  "Fortschritt aller Teams zurücksetzen? (Pins & Aufgaben bleiben — das Spiel kann neu gespielt werden.)",
-                )
-              )
-                return;
+              if (!confirm(t("pinsetup.reset.confirm"))) return;
               await fetch(`/api/games/${gameId}/reset`, { method: "POST" });
               await load();
-              alert("Fortschritt zurückgesetzt — das Spiel ist startklar.");
+              alert(t("pinsetup.reset.done"));
             }}
             className="bs-btn bs-btn--ghost w-full text-sm"
           >
-            🔁 Fortschritt zurücksetzen (nochmal spielbar)
+            {t("pinsetup.reset")}
           </button>
         </div>
 
-        {/* ============ GEMEINSAMES ZIEL (wenn alle Pins gesetzt) ============ */}
+        {/* shared goal */}
         {allDone && !goalSet && !goalSkipped ? (
           <div className="bs-panel p-4 flex flex-col gap-4">
             <p className="font-display text-xl text-[color:var(--color-cyan)]">
-              🏁 Gemeinsames Ziel
+              {t("pinsetup.goal.title")}
             </p>
             <p className="text-[color:var(--color-muted)] text-xs font-semibold">
-              Der letzte Pin — für ALLE Teams gemeinsam. Geht zum Zielort, setzt
-              ihn und gebt eine Abschluss-Aufgabe ein. Optional.
+              {t("pinsetup.goal.desc")}
             </p>
             {captureFields}
             <div className="flex gap-2">
@@ -441,108 +436,99 @@ export default function PinSetupPage() {
                 onClick={() => setGoalSkipped(true)}
                 className="bs-btn bs-btn--ghost flex-1"
               >
-                Skip
+                {t("pinsetup.skip")}
               </button>
               <button
                 onClick={saveGoal}
                 disabled={!formValid || saving}
                 className="bs-btn bs-btn--green flex-1"
               >
-                {saving ? "…" : "Sichern"}
+                {saving ? "…" : t("pinsetup.save")}
               </button>
             </div>
           </div>
         ) : allDone ? (
           <div className="bs-panel p-4 text-center flex flex-col gap-3">
             <p className="font-display text-2xl text-[color:var(--color-green)]">
-              Alles startklar! ✓
+              {t("pinsetup.allReady")}
             </p>
             <p className="text-[color:var(--color-muted)] font-bold">
-              {goalSet
-                ? "🏁 Gemeinsames Ziel gesetzt — alle Pins stehen!"
-                : "Alle Pins gesetzt (ohne gemeinsames Ziel)."}
+              {goalSet ? t("pinsetup.goal.set") : t("pinsetup.goal.skipped")}
             </p>
             {!goalSet && (
               <button
                 onClick={() => setGoalSkipped(false)}
                 className="bs-btn bs-btn--ghost text-base"
               >
-                🏁 Ziel doch noch setzen
+                {t("pinsetup.goal.addLater")}
               </button>
             )}
             <div className="bs-chip text-xl px-4 py-2 mx-auto font-display text-[color:var(--color-gold)]">
-              Code: {game.code}
+              {t("pinsetup.code", { code: game.code })}
             </div>
           </div>
         ) : (
           <>
-            {/* team switcher */}
             {game.team.length > 1 && (
               <div className="flex gap-2">
-                {game.team.map((t, i) => {
-                  const c = t.station.length;
-                  const tgt = t.member_count ?? 0;
+                {game.team.map((tm, i) => {
+                  const c = tm.station.length;
+                  const tgt = tm.member_count ?? 0;
                   return (
                     <button
-                      key={t.id}
+                      key={tm.id}
                       onClick={() => switchTeam(i)}
                       className={`flex-1 bs-btn text-base ${
                         i === activeTeam ? "" : "bs-btn--ghost"
                       }`}
                     >
-                      {t.name} {c}/{tgt}
+                      {tm.name} {c}/{tgt}
                     </button>
                   );
                 })}
               </div>
             )}
 
-            {/* ---- Mission step ---- */}
             {!missionDone ? (
               <div className="bs-panel p-4 flex flex-col gap-3">
                 <p className="font-display text-lg text-[color:var(--color-cyan)]">
-                  🎯 Mission für {team.name}
+                  {t("pinsetup.mission.title", { name: team.name ?? "" })}
                 </p>
                 <p className="text-[color:var(--color-muted)] text-xs font-semibold">
-                  Beschreibt in ein paar Sätzen, was dieses Team in diesem Spiel
-                  erleben soll.
+                  {t("pinsetup.mission.desc")}
                 </p>
                 <textarea
                   value={mission}
                   onChange={(e) => setMission(e.target.value)}
-                  placeholder="z.B. Ihr seid Schatzjäger! Findet alle Pins im Park, löst die Rätsel und hebt am Ende gemeinsam den großen Schatz."
+                  placeholder={t("pinsetup.mission.ph")}
                   rows={6}
                   className="bs-input py-3 resize-none min-h-[9rem]"
                 />
                 <div className="flex gap-2">
-                  <button
-                    onClick={skipMission}
-                    className="bs-btn bs-btn--ghost flex-1"
-                  >
-                    Skip
+                  <button onClick={skipMission} className="bs-btn bs-btn--ghost flex-1">
+                    {t("pinsetup.skip")}
                   </button>
                   <button
                     onClick={saveMission}
                     disabled={missionSaving || !mission.trim()}
                     className="bs-btn bs-btn--green flex-1"
                   >
-                    {missionSaving ? "…" : "Sichern"}
+                    {missionSaving ? "…" : t("pinsetup.save")}
                   </button>
                 </div>
               </div>
             ) : (
               <>
-                {/* mission summary */}
                 <div className="bs-panel p-3 flex items-start gap-2">
                   <span className="text-lg">🎯</span>
                   <div className="flex-1 min-w-0">
                     <span className="text-xs font-extrabold uppercase text-[color:var(--color-muted)]">
-                      Mission {team.name}
+                      {t("pinsetup.mission.label", { name: team.name ?? "" })}
                     </span>
                     <p className="font-bold text-sm">
                       {team.mission?.trim() || (
                         <span className="text-[color:var(--color-muted)]">
-                          — übersprungen —
+                          {t("pinsetup.mission.skipped")}
                         </span>
                       )}
                     </p>
@@ -555,24 +541,20 @@ export default function PinSetupPage() {
                   </button>
                 </div>
 
-                {/* progress for current team */}
                 <div className="bs-panel p-4 flex flex-col gap-2">
                   <div className="flex items-center justify-between">
                     <span className="font-display text-xl text-[color:var(--color-gold)]">
                       {team.name}
                     </span>
                     <span className="bs-chip text-[color:var(--color-cyan)]">
-                      {team.station.length}/{target} Pins
+                      {t("pinsetup.pins.progress", { n: team.station.length, total: target })}
                     </span>
                   </div>
                   {team.station.length > 0 && (
                     <ul className="flex flex-col gap-1 text-sm">
                       {team.station.map((s) => (
-                        <li
-                          key={s.id}
-                          className="text-[color:var(--color-muted)] font-semibold"
-                        >
-                          📍 Pin {s.idx + 1}
+                        <li key={s.id} className="text-[color:var(--color-muted)] font-semibold">
+                          {t("pinsetup.pin.item", { n: s.idx + 1 })}
                           {s.hint ? ` — „${s.hint}"` : ""}
                         </li>
                       ))}
@@ -583,23 +565,21 @@ export default function PinSetupPage() {
                 {done ? (
                   <div className="bs-panel p-4 text-center flex flex-col gap-3">
                     <p className="font-display text-2xl text-[color:var(--color-green)]">
-                      {team.name} fertig! ✓
+                      {t("pinsetup.team.done", { name: team.name ?? "" })}
                     </p>
                     {game.team.length > 1 && (
                       <button
-                        onClick={() =>
-                          switchTeam((activeTeam + 1) % game.team.length)
-                        }
+                        onClick={() => switchTeam((activeTeam + 1) % game.team.length)}
                         className="bs-btn bs-btn--blue"
                       >
-                        Nächstes Team →
+                        {t("pinsetup.nextTeam")}
                       </button>
                     )}
                   </div>
                 ) : (
                   <div className="bs-panel p-4 flex flex-col gap-4">
                     <p className="font-display text-lg text-[color:var(--color-cyan)]">
-                      Pin {team.station.length + 1} von {target}
+                      {t("pinsetup.pin.of", { n: team.station.length + 1, total: target })}
                     </p>
                     {captureFields}
                     {capture && (
@@ -608,7 +588,7 @@ export default function PinSetupPage() {
                         disabled={!formValid || saving}
                         className="bs-btn bs-btn--green text-lg"
                       >
-                        {saving ? "Speichern…" : "Pin speichern ✓"}
+                        {saving ? t("pinsetup.saving") : t("pinsetup.pin.save")}
                       </button>
                     )}
                   </div>
