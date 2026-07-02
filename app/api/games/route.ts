@@ -31,7 +31,23 @@ export async function POST(req: Request) {
     }
   }
 
-  const db = getServiceClient();
+  let db: ReturnType<typeof getServiceClient>;
+  try {
+    db = getServiceClient();
+  } catch {
+    return NextResponse.json(
+      { error: "Serverkonfiguration fehlerhaft – bitte Admin kontaktieren" },
+      { status: 500 },
+    );
+  }
+
+  function dbError(raw: string | undefined, fallback: string): string {
+    if (!raw) return fallback;
+    if (raw.includes("fetch failed") || raw.includes("ENOTFOUND") || raw.includes("ECONNREFUSED")) {
+      return "Datenbankverbindung fehlgeschlagen – bitte kurz warten und erneut versuchen";
+    }
+    return fallback;
+  }
 
   const { data: game, error: gErr } = await db
     .from("game")
@@ -40,7 +56,7 @@ export async function POST(req: Request) {
     .single();
   if (gErr || !game) {
     return NextResponse.json(
-      { error: gErr?.message ?? "Spiel konnte nicht angelegt werden" },
+      { error: dbError(gErr?.message, "Spiel konnte nicht angelegt werden") },
       { status: 500 },
     );
   }
@@ -58,7 +74,7 @@ export async function POST(req: Request) {
       .single();
     if (tErr || !team) {
       return NextResponse.json(
-        { error: tErr?.message ?? "Team konnte nicht angelegt werden" },
+        { error: dbError(tErr?.message, "Team konnte nicht angelegt werden") },
         { status: 500 },
       );
     }
@@ -69,7 +85,10 @@ export async function POST(req: Request) {
     }));
     const { error: pErr } = await db.from("player").insert(rows);
     if (pErr) {
-      return NextResponse.json({ error: pErr.message }, { status: 500 });
+      return NextResponse.json(
+        { error: dbError(pErr.message, "Spieler konnten nicht gespeichert werden") },
+        { status: 500 },
+      );
     }
   }
 

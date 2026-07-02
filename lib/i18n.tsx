@@ -352,12 +352,11 @@ const I18nContext = createContext<Ctx | null>(null);
 const LS_KEY = "pinstars:lang";
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [lang, setLangState] = useState<Lang>("de");
-
-  useEffect(() => {
+  const [lang, setLangState] = useState<Lang>(() => {
+    if (typeof window === "undefined") return "de";
     const stored = localStorage.getItem(LS_KEY) as Lang | null;
-    if (stored && LANGS.includes(stored)) setLangState(stored);
-  }, []);
+    return stored && LANGS.includes(stored) ? stored : "de";
+  });
 
   function setLang(l: Lang) {
     setLangState(l);
